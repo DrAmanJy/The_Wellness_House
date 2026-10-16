@@ -2,7 +2,7 @@ import { Metadata } from 'next';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { 
-  Clock, Heart, ShieldCheck, Check, Sparkles, 
+  Clock, ShieldCheck, Check, Sparkles, 
   MapPin, ArrowLeft, ArrowRight, BookOpen, Compass 
 } from 'lucide-react';
 import { RITUAL_FORMULATIONS } from '@/lib/rituals-data';

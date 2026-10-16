@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Play, Share2, Heart, Sparkles } from 'lucide-react';
+import { Play, Share2, Sparkles } from 'lucide-react';
 import { EditorialImage } from '@/components/editorial-image';
 import { VideoPlayer } from '@/components/video/VideoPlayer';
 
@@ -19,8 +19,6 @@ interface AnimatedGalleryProps {
   fallbackVariant?: any;
   badge?: string;
   onShare?: () => void;
-  onToggleSave?: () => void;
-  isSaved?: boolean;
 }
 
 export const AnimatedGallery: React.FC<AnimatedGalleryProps> = ({
@@ -28,8 +26,6 @@ export const AnimatedGallery: React.FC<AnimatedGalleryProps> = ({
   fallbackVariant,
   badge,
   onShare,
-  onToggleSave,
-  isSaved = false,
 }) => {
   const [activeIndex, setActiveIndex] = useState(0);
   const currentItem = media[activeIndex] || media[0];
@@ -97,21 +93,7 @@ export const AnimatedGallery: React.FC<AnimatedGalleryProps> = ({
               <Share2 className="w-4 h-4" />
             </button>
           )}
-          {onToggleSave && (
-            <motion.button
-              whileTap={{ scale: 0.88 }}
-              onClick={onToggleSave}
-              className={`p-2.5 rounded-full shadow-xs backdrop-blur-xs transition-all ${
-                isSaved
-                  ? 'bg-[#C58B71] text-white'
-                  : 'bg-[#FFFEFA]/90 text-[#252A25] hover:bg-[#FFFEFA] hover:text-[#C58B71]'
-              }`}
-              title={isSaved ? 'Saved in Sanctuary Log' : 'Save to Sanctuary Log'}
-              aria-label="Toggle wishlist"
-            >
-              <Heart className={`w-4 h-4 ${isSaved ? 'fill-current' : ''}`} />
-            </motion.button>
-          )}
+
         </div>
       </div>
 

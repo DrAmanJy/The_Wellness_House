@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import Link from 'next/link';
 import { 
-  Clock, Heart, Check, ArrowRight, Share2, Printer, 
+  Clock, Check, ArrowRight, Share2, Printer, 
   Sparkles, CheckCircle2, ChevronRight, ShoppingBag 
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
@@ -16,8 +16,7 @@ interface Props {
 }
 
 export const RitualDetailInteractive: React.FC<Props> = ({ ritual }) => {
-  const { toggleSaveRitual, isRitualSaved, showToast, addToCart } = useStore();
-  const saved = isRitualSaved(ritual.slug);
+  const { showToast, addToCart } = useStore();
 
   // Gallery media with high-res photography and demonstration video
   const rawImages = ritual.galleryImages && ritual.galleryImages.length > 0 
@@ -95,8 +94,6 @@ export const RitualDetailInteractive: React.FC<Props> = ({ ritual }) => {
           fallbackVariant={ritual.artVariant}
           badge={ritual.badge}
           onShare={handleShare}
-          onToggleSave={() => toggleSaveRitual(ritual.slug)}
-          isSaved={saved}
         />
 
         {/* Sensory Profile Strip */}

@@ -1,6 +1,6 @@
 import { Metadata } from 'next';
 import Link from 'next/link';
-import { ArrowRight, Leaf, ShieldCheck, Heart, Sparkles, Award, MapPin, CheckCircle2 } from 'lucide-react';
+import { ArrowRight, Leaf, ShieldCheck, Sparkles, Award, MapPin, CheckCircle2 } from 'lucide-react';
 import { EditorialImage } from '@/components/editorial-image';
 
 export const metadata: Metadata = {

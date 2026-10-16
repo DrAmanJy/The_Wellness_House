@@ -10,7 +10,6 @@ import {
   X,
   ArrowRight,
   ChevronDown,
-  Heart,
   ShoppingBag,
   Sparkles,
 } from "lucide-react";
@@ -70,7 +69,7 @@ const MEGA_MENU_COLLECTIONS: MegaMenuCollection[] = [
 
 export const Navbar: React.FC = () => {
   const pathname = usePathname();
-  const { setIsSearchOpen, savedRitualSlugs, setIsCartOpen, cartCount } =
+  const { setIsSearchOpen, setIsCartOpen, cartCount } =
     useStore();
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -115,8 +114,7 @@ export const Navbar: React.FC = () => {
     setIsMegaMenuOpen(false);
   };
 
-  // Track saved rituals & cart counts safely for SSR hydration
-  const displaySavedCount = isMounted ? savedRitualSlugs.length : 0;
+  // Track cart count safely for SSR hydration
   const displayCartCount = isMounted ? cartCount : 0;
 
   useEffect(() => {
@@ -311,19 +309,6 @@ export const Navbar: React.FC = () => {
               <Search className="w-[18px] h-[18px]" />
             </button>
 
-            {/* Wishlist */}
-            <Link
-              href="/rituals"
-              className="relative p-2 text-[#252A25]/70 hover:text-[#30473B] transition-colors rounded-full hover:bg-[#CAD6BC]/15 hidden sm:flex"
-              aria-label={`Saved rituals (${displaySavedCount})`}
-            >
-              <Heart className="w-[18px] h-[18px]" />
-              {displaySavedCount > 0 && (
-                <span className="absolute -top-0.5 -right-0.5 w-4 h-4 rounded-full bg-[#C58B71] text-white text-[9px] font-bold flex items-center justify-center leading-none">
-                  {displaySavedCount}
-                </span>
-              )}
-            </Link>
 
             {/* Botanical Bag / Cart Drawer */}
             <button

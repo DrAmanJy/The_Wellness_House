@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import Link from 'next/link';
-import { ArrowRight, Clock, Heart, ShoppingBag, Check } from 'lucide-react';
+import { ArrowRight, Clock, ShoppingBag, Check } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { RitualFormulation } from '@/lib/types';
 import { EditorialImage } from '@/components/editorial-image';
@@ -13,8 +13,7 @@ interface RitualCardProps {
 }
 
 export const RitualCard: React.FC<RitualCardProps> = ({ ritual }) => {
-  const { toggleSaveRitual, isRitualSaved, addToCart } = useStore();
-  const saved = isRitualSaved(ritual.slug);
+  const { addToCart } = useStore();
   const [isAdding, setIsAdding] = useState(false);
   const [justAdded, setJustAdded] = useState(false);
 
@@ -74,29 +73,6 @@ export const RitualCard: React.FC<RitualCardProps> = ({ ritual }) => {
           </div>
         )}
 
-        {/* Save to Log Wishlist Button */}
-        <motion.button
-          whileTap={{ scale: 0.88 }}
-          onClick={(e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            toggleSaveRitual(ritual.slug);
-          }}
-          className={`absolute top-3 right-3 p-2 rounded-full backdrop-blur-xs transition-all z-10 ${
-            saved 
-              ? 'bg-[#C58B71] text-white shadow-xs' 
-              : 'bg-[#FFFEFA]/85 text-[#252A25] hover:bg-[#FFFEFA] hover:text-[#C58B71]'
-          }`}
-          aria-label={saved ? 'Remove from Saved' : 'Save to Ritual Log'}
-        >
-          <motion.div
-            initial={false}
-            animate={{ scale: saved ? [1, 1.25, 1] : 1 }}
-            transition={{ duration: 0.3 }}
-          >
-            <Heart className={`w-4 h-4 ${saved ? 'fill-current' : ''}`} />
-          </motion.div>
-        </motion.button>
 
         {/* Quick Add to Bag Floating Action Button */}
         <div className="absolute bottom-3 right-3 z-10 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
