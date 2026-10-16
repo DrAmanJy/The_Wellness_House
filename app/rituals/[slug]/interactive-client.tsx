@@ -41,7 +41,6 @@ export const RitualDetailInteractive: React.FC<Props> = ({ ritual }) => {
   ];
 
   const [supplyFormat, setSupplyFormat] = useState('standard-30');
-  const [completedSteps, setCompletedSteps] = useState<number[]>([]);
   const [isAdding, setIsAdding] = useState(false);
   const [justAdded, setJustAdded] = useState(false);
 
@@ -72,13 +71,6 @@ export const RitualDetailInteractive: React.FC<Props> = ({ ritual }) => {
     }, 280);
   };
 
-  const toggleStep = (stepNumber: number) => {
-    setCompletedSteps(prev => 
-      prev.includes(stepNumber) 
-        ? prev.filter(s => s !== stepNumber) 
-        : [...prev, stepNumber]
-    );
-  };
 
   const handlePrint = () => {
     if (typeof window !== 'undefined') {
@@ -179,54 +171,6 @@ export const RitualDetailInteractive: React.FC<Props> = ({ ritual }) => {
           </div>
         </div>
 
-        {/* Step-by-Step Interactive Practice Checklist */}
-        <div className="pt-4 border-t border-[#30473B]/10 space-y-3">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-mono uppercase tracking-wider text-[#30473B] block">
-              Step-by-Step Daily Practice ({completedSteps.length} of {ritual.stepByStepProtocol.length} Completed):
-            </span>
-            {completedSteps.length > 0 && (
-              <button
-                onClick={() => setCompletedSteps([])}
-                className="text-[11px] text-[#71776F] hover:text-[#30473B] underline"
-              >
-                Reset Checklist
-              </button>
-            )}
-          </div>
-
-          <div className="space-y-2.5">
-            {ritual.stepByStepProtocol.map((s) => {
-              const isDone = completedSteps.includes(s.step);
-              return (
-                <button
-                  key={s.step}
-                  onClick={() => toggleStep(s.step)}
-                  className={`w-full p-4 rounded-xl text-left border transition-all flex items-start gap-3.5 ${
-                    isDone 
-                      ? 'bg-[#FAF7F2] border-[#CAD6BC] text-[#71776F]' 
-                      : 'bg-[#FFFEFA] border-[#30473B]/10 hover:border-[#30473B]/30'
-                  }`}
-                >
-                  <div className={`w-5 h-5 rounded-md border flex items-center justify-center shrink-0 mt-0.5 transition-colors ${
-                    isDone ? 'bg-[#30473B] border-[#30473B] text-white' : 'border-[#30473B]/30'
-                  }`}>
-                    {isDone && <Check className="w-3.5 h-3.5" />}
-                  </div>
-                  <div className="space-y-0.5">
-                    <div className="flex items-center gap-2">
-                      <span className="font-mono text-[10px] text-[#C58B71] uppercase tracking-wider">Step 0{s.step} · {s.timing}</span>
-                    </div>
-                    <div className={`font-serif text-sm font-medium ${isDone ? 'line-through text-[#71776F]' : 'text-[#252A25]'}`}>
-                      {s.title}
-                    </div>
-                    <p className="text-xs text-[#71776F] leading-relaxed pt-0.5">{s.instruction}</p>
-                  </div>
-                </button>
-              );
-            })}
-          </div>
-        </div>
 
         {/* Primary E-Commerce & Atelier Purchase Controls */}
         <div className="pt-4 border-t border-[#30473B]/10 space-y-3">
