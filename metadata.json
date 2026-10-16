@@ -1,0 +1,6 @@
+{
+  "name": "The Wellness House",
+  "description": "A luxury botanical wellness sanctuary, circadian chronobiology science, standardized adaptogens, and slow self-care rituals.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
