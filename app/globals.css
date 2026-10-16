@@ -1,0 +1,202 @@
+@import "tailwindcss";
+
+@theme {
+  --color-ivory: #F5F1E8;
+  --color-ivory-light: #FAF7F2;
+  --color-forest: #30473B;
+  --color-forest-dark: #203128;
+  --color-forest-light: #3D5A4B;
+  --color-sage: #CAD6BC;
+  --color-sage-light: #E7EDE0;
+  --color-sage-soft: #F1F5EB;
+  --color-clay: #C58B71;
+  --color-clay-light: #DFC0B1;
+  --color-clay-soft: #F6EDE8;
+  --color-surface: #FFFEFA;
+  --color-text-main: #252A25;
+  --color-text-muted: #71776F;
+  --font-serif: var(--font-serif), Georgia, Cambria, "Times New Roman", Times, serif;
+  --font-sans: var(--font-sans), -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+}
+
+:root {
+  --background: #F5F1E8;
+  --foreground: #252A25;
+  
+  /* Motion design tokens as CSS custom properties */
+  --ease-smooth: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-decelerate: cubic-bezier(0.0, 0.0, 0.2, 1);
+  --ease-standard: cubic-bezier(0.4, 0.0, 0.2, 1);
+  --duration-micro: 150ms;
+  --duration-button: 200ms;
+  --duration-nav: 240ms;
+  --duration-modal: 280ms;
+  --duration-section: 450ms;
+}
+
+body {
+  background-color: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  overflow-x: hidden;
+}
+
+/* ─── Zero-Flash Brand Intro Guard ───────────────────────── */
+html.twh-intro-active body {
+  overflow: hidden !important;
+}
+
+html.twh-intro-active header,
+html.twh-intro-active [data-announcement-bar],
+html.twh-intro-active nav {
+  opacity: 0 !important;
+  pointer-events: none !important;
+  visibility: hidden !important;
+}
+
+/* ─── Reduced Motion ──────────────────────────────────────── */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* ─── Custom Subtle Scrollbar ─────────────────────────────── */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: #F5F1E8;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #CAD6BC;
+  border-radius: 9999px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #30473B;
+}
+
+/* ─── Tabular Nums Utility ────────────────────────────────── */
+.tabular-nums {
+  font-variant-numeric: tabular-nums;
+}
+
+/* ─── Editorial Selection Highlight ───────────────────────── */
+::selection {
+  background-color: #CAD6BC;
+  color: #30473B;
+}
+
+/* ─── Focus Visible Ring ──────────────────────────────────── */
+:focus-visible {
+  outline: 2px solid #30473B;
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+/* ─── Premium Button Transitions ──────────────────────────── */
+.btn-primary {
+  transition: background-color var(--duration-button) var(--ease-smooth),
+              transform var(--duration-micro) var(--ease-smooth),
+              box-shadow var(--duration-button) var(--ease-smooth);
+}
+
+.btn-primary:active {
+  transform: scale(0.98);
+}
+
+/* ─── Link Hover Underline Animation ──────────────────────── */
+.link-underline {
+  position: relative;
+  text-decoration: none;
+}
+
+.link-underline::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  bottom: -2px;
+  width: 0;
+  height: 1px;
+  background-color: currentColor;
+  transition: width var(--duration-button) var(--ease-smooth);
+}
+
+.link-underline:hover::after {
+  width: 100%;
+}
+
+/* ─── Card Hover Enhancement ──────────────────────────────── */
+.card-interactive {
+  transition: border-color var(--duration-button) var(--ease-smooth),
+              box-shadow var(--duration-button) var(--ease-smooth);
+}
+
+.card-interactive:hover {
+  border-color: rgba(48, 71, 59, 0.25);
+  box-shadow: 0 4px 24px -4px rgba(48, 71, 59, 0.08),
+              0 1px 4px rgba(48, 71, 59, 0.04);
+}
+
+/* ─── Image Hover Scale (contained) ───────────────────────── */
+.img-hover-scale {
+  overflow: hidden;
+}
+
+.img-hover-scale img,
+.img-hover-scale > [data-image-container] {
+  transition: transform 0.7s var(--ease-smooth);
+}
+
+.img-hover-scale:hover img,
+.img-hover-scale:hover > [data-image-container] {
+  transform: scale(1.035);
+}
+
+/* ─── Smooth Section Spacing ──────────────────────────────── */
+.section-spacing {
+  padding-top: clamp(4rem, 8vw, 7rem);
+  padding-bottom: clamp(4rem, 8vw, 7rem);
+}
+
+/* ─── Editorial Typography Refinement ─────────────────────── */
+.editorial-headline {
+  font-family: var(--font-serif);
+  font-weight: 400;
+  letter-spacing: -0.01em;
+  line-height: 1.08;
+  text-wrap: balance;
+}
+
+.editorial-body {
+  font-family: var(--font-sans);
+  font-size: 0.875rem;
+  line-height: 1.7;
+  color: #71776F;
+}
+
+/* ─── Mega Menu Transition ────────────────────────────────── */
+.mega-menu-enter {
+  opacity: 0;
+  transform: translateY(8px);
+  pointer-events: none;
+}
+
+.mega-menu-active {
+  opacity: 1;
+  transform: translateY(0);
+  pointer-events: auto;
+  transition: opacity var(--duration-nav) var(--ease-smooth),
+              transform var(--duration-nav) var(--ease-smooth);
+}
