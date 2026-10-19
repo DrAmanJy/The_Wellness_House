@@ -1,5 +1,6 @@
 node_modules/
 .next/
+.next-production/
 coverage/
 .DS_Store
 *.log
@@ -8,3 +9,6 @@ coverage/
 *.tsbuildinfo
 .aistudio/
 /*.png
+
+work/
+audit-work.json
