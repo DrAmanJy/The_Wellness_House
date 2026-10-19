@@ -1,0 +1,11 @@
+ALTER TABLE content_revisions ADD COLUMN desired_slug text;
+CREATE TABLE content_slugs(kind text NOT NULL,slug text NOT NULL,entity_id uuid NOT NULL REFERENCES content_entities(id),role text NOT NULL CHECK(role IN ('canonical','redirect')),PRIMARY KEY(kind,slug));
+INSERT INTO content_slugs SELECT kind,slug,id,'canonical' FROM content_entities;
+CREATE FUNCTION register_content_slug() RETURNS trigger LANGUAGE plpgsql AS $$ BEGIN INSERT INTO content_slugs VALUES(NEW.kind,NEW.slug,NEW.id,'canonical'); RETURN NEW; END $$;
+CREATE TRIGGER register_slug AFTER INSERT ON content_entities FOR EACH ROW EXECUTE FUNCTION register_content_slug();
+CREATE INDEX live_search ON content_revisions USING gin(to_tsvector('english',coalesce(content->>'title','')||' '||coalesce(content->>'overview',content->>'excerpt','')));
+CREATE INDEX preview_sessions_link ON preview_sessions(link_id);
+CREATE INDEX revision_media_asset ON revision_media(media_id);
+CREATE INDEX identity_user ON auth_identities(user_id);
+CREATE INDEX inquiry_assignment ON contact_inquiries(assigned_to,id);
+CREATE INDEX scheduled_due ON scheduled_publications(publish_at) WHERE status='queued';
