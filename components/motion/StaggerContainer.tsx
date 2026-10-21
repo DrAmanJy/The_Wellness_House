@@ -1,9 +1,14 @@
-'use client';
+"use client";
 
-import React from 'react';
-import { motion, useReducedMotion } from 'motion/react';
-import { stagger as staggerTokens, duration, easing, distance } from '@/lib/motion/tokens';
-import { viewport } from '@/lib/motion/tokens';
+import React from "react";
+import { motion, useReducedMotion } from "motion/react";
+import {
+  stagger as staggerTokens,
+  duration,
+  easing,
+  distance,
+} from "@/lib/motion/tokens";
+import { viewport } from "@/lib/motion/tokens";
 
 // ── StaggerContainer ──────────────────────────────────────────
 
@@ -14,7 +19,7 @@ interface StaggerContainerProps {
   stagger?: number;
   /** Delay before first child animates */
   delay?: number;
-  as?: 'div' | 'section' | 'ul';
+  as?: "div" | "section" | "ul";
 }
 
 export const StaggerContainer: React.FC<StaggerContainerProps> = ({
@@ -22,7 +27,7 @@ export const StaggerContainer: React.FC<StaggerContainerProps> = ({
   className,
   stagger = staggerTokens.default,
   delay = 0,
-  as = 'div',
+  as = "div",
 }) => {
   const prefersReduced = useReducedMotion();
   const Tag = motion[as] as typeof motion.div;
@@ -34,7 +39,7 @@ export const StaggerContainer: React.FC<StaggerContainerProps> = ({
 
   return (
     <Tag
-      initial="hidden"
+      initial={false}
       whileInView="visible"
       viewport={viewport.default}
       variants={{
@@ -58,13 +63,13 @@ export const StaggerContainer: React.FC<StaggerContainerProps> = ({
 interface StaggerItemProps {
   children: React.ReactNode;
   className?: string;
-  as?: 'div' | 'li' | 'article';
+  as?: "div" | "li" | "article";
 }
 
 export const StaggerItem: React.FC<StaggerItemProps> = ({
   children,
   className,
-  as = 'div',
+  as = "div",
 }) => {
   const prefersReduced = useReducedMotion();
   const Tag = motion[as] as typeof motion.div;
@@ -76,6 +81,7 @@ export const StaggerItem: React.FC<StaggerItemProps> = ({
 
   return (
     <Tag
+      initial={false}
       variants={{
         hidden: { opacity: 0, y: distance.reveal },
         visible: {

@@ -1,15 +1,11 @@
-'use client';
+"use client";
 
-import React from 'react';
-import {
-  motion,
-  useReducedMotion,
-  type Variants,
-} from 'motion/react';
-import { revealUp, revealSubtle, fade } from '@/lib/motion/variants';
-import { viewport } from '@/lib/motion/tokens';
+import React from "react";
+import { motion, useReducedMotion, type Variants } from "motion/react";
+import { revealUp, revealSubtle, fade } from "@/lib/motion/variants";
+import { viewport } from "@/lib/motion/tokens";
 
-type RevealVariant = 'up' | 'subtle' | 'fade';
+type RevealVariant = "up" | "subtle" | "fade";
 
 interface RevealProps {
   children: React.ReactNode;
@@ -21,7 +17,7 @@ interface RevealProps {
   /** Custom CSS class */
   className?: string;
   /** HTML element to render */
-  as?: 'div' | 'section' | 'article' | 'aside' | 'span';
+  as?: "div" | "section" | "article" | "aside" | "span";
   /** Viewport margin override */
   viewportMargin?: string;
 }
@@ -40,11 +36,11 @@ const variantMap: Record<RevealVariant, Variants> = {
  */
 export const Reveal: React.FC<RevealProps> = ({
   children,
-  variant = 'up',
+  variant = "up",
   custom,
   delay = 0,
   className,
-  as = 'div',
+  as = "div",
   viewportMargin,
 }) => {
   const prefersReduced = useReducedMotion();
@@ -58,9 +54,13 @@ export const Reveal: React.FC<RevealProps> = ({
 
   return (
     <Tag
-      initial="hidden"
+      initial={false}
       whileInView="visible"
-      viewport={viewportMargin ? { once: true, margin: viewportMargin as `${number}px ${number}px` } : viewport.default}
+      viewport={
+        viewportMargin
+          ? { once: true, margin: viewportMargin as `${number}px ${number}px` }
+          : viewport.default
+      }
       variants={variants}
       transition={delay ? { delay } : undefined}
       className={className}
