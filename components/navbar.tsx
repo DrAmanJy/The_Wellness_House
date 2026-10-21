@@ -36,41 +36,48 @@ const MEGA_MENU_COLLECTIONS: MegaMenuCollection[] = [
   {
     title: "Weight Management Kits",
     tag: "Metabolic Balance",
-    description: "Circadian metabolic suites with Darjeeling EGCG & evening carminatives",
+    description:
+      "Metabolic support with Darjeeling green tea EGCG & digestive botanicals",
     href: "/collections/weight-management",
-    image: "https://images.unsplash.com/photo-1540555700478-4be289fbecef?auto=format&fit=crop&w=600&q=80",
-    itemCount: "2 Formulations",
+    image:
+      "https://images.unsplash.com/photo-1540555700478-4be289fbecef?auto=format&fit=crop&w=600&q=80",
+    itemCount: "2 Products",
   },
   {
     title: "Wellness Gummies",
-    tag: "Botanical Chews",
-    description: "Plant-pectin restorative nectars with German Chamomile & L-Theanine",
+    tag: "Daily Chews",
+    description:
+      "Plant-pectin restorative chews with German Chamomile & L-Theanine",
     href: "/collections/gummies",
-    image: "https://images.unsplash.com/photo-1570172619644-dfd03ed5d881?auto=format&fit=crop&w=600&q=80",
-    itemCount: "2 Formulations",
+    image:
+      "https://images.unsplash.com/photo-1570172619644-dfd03ed5d881?auto=format&fit=crop&w=600&q=80",
+    itemCount: "2 Products",
   },
   {
     title: "Soaps & Body Care",
-    tag: "Cold-Process Castile",
-    description: "Six-week artisanal limestone-cured bars retaining pure plant glycerin",
+    tag: "Castile & Oils",
+    description:
+      "Artisanal cold-process bars retaining natural moisturizing glycerin",
     href: "/collections/soaps",
-    image: "https://images.unsplash.com/photo-1617897903246-719242758050?auto=format&fit=crop&w=600&q=80",
-    itemCount: "1 Formulation",
+    image:
+      "https://images.unsplash.com/photo-1617897903246-719242758050?auto=format&fit=crop&w=600&q=80",
+    itemCount: "1 Product",
   },
   {
     title: "Wellness Bundles",
-    tag: "Circadian Suites",
-    description: "24-hour diurnal regimens with handcrafted brass scoops & linen journals",
+    tag: "Curated Regimens",
+    description:
+      "Targeted daily regimens with brass scoop & linen journal",
     href: "/collections/bundles",
-    image: "https://images.unsplash.com/photo-1556228720-195a672e8a03?auto=format&fit=crop&w=600&q=80",
-    itemCount: "1 Living Suite",
+    image:
+      "https://images.unsplash.com/photo-1556228720-195a672e8a03?auto=format&fit=crop&w=600&q=80",
+    itemCount: "1 Bundle",
   },
 ];
 
 export const Navbar: React.FC = () => {
   const pathname = usePathname();
-  const { setIsSearchOpen, setIsCartOpen, cartCount } =
-    useStore();
+  const { setIsSearchOpen, setIsCartOpen, cartCount, siteConfig } = useStore();
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isMegaMenuOpen, setIsMegaMenuOpen] = useState(false);
@@ -161,13 +168,21 @@ export const Navbar: React.FC = () => {
     setIsMegaMenuOpen(false);
   }, [pathname]);
 
-  const navLinks = [
-    { label: "Collections", href: "/collections" },
-    { label: "Rituals & Formulations", href: "/rituals" },
-    { label: "The Science", href: "/science" },
-    { label: "The Ateliers", href: "/atelier" },
-    { label: "The Journal", href: "/journal" },
-  ];
+  const navLinks: { label: string; href: string }[] = siteConfig?.navigation
+    ? [
+        { label: "Collections", href: "/collections" },
+        ...siteConfig.navigation
+          .filter((i: any) => i.path !== "/collections")
+          .map((i: any) => ({ label: i.label, href: i.path })),
+        { label: "Account", href: "/account" },
+      ]
+    : [
+        { label: "Collections", href: "/collections" },
+        { label: "Rituals & Formulations", href: "/rituals" },
+        { label: "The Science", href: "/science" },
+        { label: "The Ateliers", href: "/atelier" },
+        { label: "The Journal", href: "/journal" },
+      ];
 
   return (
     <header
@@ -236,7 +251,7 @@ export const Navbar: React.FC = () => {
             aria-label="The Wellness House - Return to Home"
           >
             <Image
-              src="/wellness_house_logo.svg"
+              src={siteConfig?.logo || "/wellness_house_logo.svg"}
               alt="The Wellness House"
               width={260}
               height={80}
@@ -305,10 +320,10 @@ export const Navbar: React.FC = () => {
               className="p-2 text-[#252A25]/70 hover:text-[#30473B] transition-colors rounded-full hover:bg-[#CAD6BC]/15 focus:outline-hidden"
               aria-label="Search Formulations"
               title="Search botanical rituals"
+              suppressHydrationWarning
             >
               <Search className="w-[18px] h-[18px]" />
             </button>
-
 
             {/* Botanical Bag / Cart Drawer */}
             <button
@@ -316,6 +331,7 @@ export const Navbar: React.FC = () => {
               className="relative p-2 text-[#252A25]/70 hover:text-[#30473B] transition-colors rounded-full hover:bg-[#CAD6BC]/15 flex items-center justify-center focus:outline-hidden"
               aria-label={`Botanical bag (${displayCartCount} items)`}
               title="Open Botanical Bag"
+              suppressHydrationWarning
             >
               <ShoppingBag className="w-[18px] h-[18px]" />
               <AnimatePresence>
@@ -365,7 +381,9 @@ export const Navbar: React.FC = () => {
                   <span className="w-1.5 h-1.5 rounded-full bg-[#30473B]" />
                   <span>The Botanical Living Apothecary</span>
                   <span className="text-[#30473B]/30">·</span>
-                  <span className="text-[#30473B] font-semibold">Circadian Protocols & Pure Saponification</span>
+                  <span className="text-[#30473B] font-semibold">
+                    Circadian Protocols & Pure Saponification
+                  </span>
                 </div>
                 <Link
                   href="/rituals"
@@ -416,7 +434,9 @@ export const Navbar: React.FC = () => {
                             <span className="font-mono text-[9px] uppercase tracking-wider text-[#C58B71] font-medium">
                               {collection.tag}
                             </span>
-                            <span className="text-[10px] text-[#71776F] font-mono">· {collection.itemCount}</span>
+                            <span className="text-[10px] text-[#71776F] font-mono">
+                              · {collection.itemCount}
+                            </span>
                           </div>
                           <h4 className="text-sm font-medium text-[#252A25] group-hover:text-[#30473B] transition-colors truncate">
                             {collection.title}
@@ -476,7 +496,9 @@ export const Navbar: React.FC = () => {
                         The Daily Metabolic & Balance Protocol
                       </h4>
                       <p className="text-xs text-[#71776F] line-clamp-2 leading-relaxed">
-                        Diurnal metabolic support with active Darjeeling green tea catechins and soothing whole-seed evening carminatives.
+                        Diurnal metabolic support with active Darjeeling green
+                        tea catechins and soothing whole-seed evening
+                        carminatives.
                       </p>
                       <div className="pt-2 flex items-center text-xs font-medium text-[#30473B] group-hover:underline gap-1">
                         <span>View Formulation Dossier</span>
@@ -503,7 +525,8 @@ export const Navbar: React.FC = () => {
                         Private Chronobiology Consultation
                       </h4>
                       <p className="text-xs text-[#71776F] leading-relaxed">
-                        Meet 1-on-1 with our team to map your sleep, digestion, and circadian routine.
+                        Meet 1-on-1 with our team to map your sleep, digestion,
+                        and circadian routine.
                       </p>
                       <Link
                         href="/consultation"
@@ -556,11 +579,15 @@ export const Navbar: React.FC = () => {
                 <div className="flex flex-wrap items-center gap-6">
                   <div className="flex items-center gap-2">
                     <span className="text-[#30473B]">✓</span>
-                    <span>Complimentary Pan-India Dispatch on Ritual Suites</span>
+                    <span>
+                      Complimentary Pan-India Dispatch on Ritual Suites
+                    </span>
                   </div>
                   <div className="flex items-center gap-2">
                     <span className="text-[#30473B]">✓</span>
-                    <span>Standardized Bio-Actives · Zero Synthetic Fillers</span>
+                    <span>
+                      Standardized Bio-Actives · Zero Synthetic Fillers
+                    </span>
                   </div>
                   <div className="flex items-center gap-2">
                     <span className="text-[#30473B]">✓</span>
@@ -594,7 +621,7 @@ export const Navbar: React.FC = () => {
             <div className="px-6 pt-4 pb-8">
               <div className="pb-4 mb-4 border-b border-[#30473B]/10 flex items-center justify-between">
                 <Image
-                  src="/wellness_house_logo.svg"
+                  src={siteConfig?.logo || "/wellness_house_logo.svg"}
                   alt="The Wellness House"
                   width={180}
                   height={55}
