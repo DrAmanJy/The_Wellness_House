@@ -1,15 +1,16 @@
-'use client';
+"use client";
 
-import React from 'react';
-import Link from 'next/link';
-import { ArrowUpRight } from 'lucide-react';
-import { RitualCard } from '@/components/ritual-card';
-import { Reveal, StaggerContainer, StaggerItem } from '@/components/motion';
-import { RITUAL_FORMULATIONS } from '@/lib/rituals-data';
+import React from "react";
+import Link from "next/link";
+import { ArrowUpRight } from "lucide-react";
+import { RitualCard } from "@/components/ritual-card";
+import { Reveal, StaggerContainer, StaggerItem } from "@/components/motion";
+import { useStore } from "@/context/store-context";
 
 export const BestsellingProducts: React.FC = () => {
   // Curated 4 bestsellers spanning the four core disciplines
-  const bestsellers = RITUAL_FORMULATIONS.slice(0, 4);
+  const { rituals } = useStore();
+  const bestsellers = rituals.slice(0, 4);
 
   return (
     <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-10 sm:space-y-12">
@@ -26,7 +27,8 @@ export const BestsellingProducts: React.FC = () => {
               Bestselling Rituals
             </h2>
             <p className="text-xs sm:text-sm text-[#71776F] font-light max-w-lg">
-              Proven everyday essentials formulated with certified phytochemical markers and cold-process traditions.
+              Proven everyday essentials formulated with certified phytochemical
+              markers and cold-process traditions.
             </p>
           </div>
         </Reveal>
@@ -43,7 +45,10 @@ export const BestsellingProducts: React.FC = () => {
       </div>
 
       {/* 4-Item Desktop Grid with Motion */}
-      <StaggerContainer className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 sm:gap-7" stagger={0.07}>
+      <StaggerContainer
+        className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 sm:gap-7"
+        stagger={0.07}
+      >
         {bestsellers.map((ritual) => (
           <StaggerItem key={ritual.id}>
             <RitualCard ritual={ritual} />

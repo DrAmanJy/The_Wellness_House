@@ -2,6 +2,7 @@
 
 import React, { useState, useRef, useEffect } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { ArrowUpRight } from "lucide-react";
 import { motion, useReducedMotion } from "motion/react";
 
@@ -135,11 +136,12 @@ const CollectionCampaignCard: React.FC<CollectionCampaignCardProps> = ({ card })
       <div className={`relative w-full ${card.aspectMobile} ${card.aspectDesktop} overflow-hidden`}>
         
         {/* Full-bleed photography (The hero, bright & natural) */}
-        <img
+        <Image
           src={card.imageUrl}
           alt={card.headline}
-          className="w-full h-full object-cover object-center transition-transform duration-700 ease-[cubic-bezier(0.22,1,0.36,1)] group-hover:scale-[1.035]"
-          loading="lazy"
+          fill
+          sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
+          className="object-cover object-center transition-transform duration-700 ease-[cubic-bezier(0.22,1,0.36,1)] group-hover:scale-[1.035]"
         />
 
         {/* Optional Desktop Hover Video Preview */}
