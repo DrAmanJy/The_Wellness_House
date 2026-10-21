@@ -1,33 +1,53 @@
-'use client';
+"use client";
 
-import React, { useState } from 'react';
-import Link from 'next/link';
-import { Mail, CheckCircle2, ArrowRight, ShieldCheck, MapPin } from 'lucide-react';
-import { useStore } from '@/context/store-context';
+import React, { useState } from "react";
+import Link from "next/link";
+import {
+  Mail,
+  CheckCircle2,
+  ArrowRight,
+  ShieldCheck,
+  MapPin,
+} from "lucide-react";
+import { useStore } from "@/context/store-context";
 
 export const Footer: React.FC = () => {
-  const { showToast } = useStore();
-  const [email, setEmail] = useState('');
+  const { showToast, siteConfig } = useStore();
+  const [email, setEmail] = useState("");
   const [subscribed, setSubscribed] = useState(false);
 
   const handleSubscribe = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!email || !email.includes('@')) {
-      showToast('Please enter a valid email address', undefined, 'error');
+    if (!email || !email.includes("@")) {
+      showToast("Please enter a valid email address", undefined, "error");
       return;
     }
+    showToast(
+      "Contact our team",
+      "Please use the contact page for publication requests.",
+      "info",
+    );
+    return;
     setSubscribed(true);
-    showToast('Welcome to the Sanctuary Circle', 'Our botanical seasonal publication will arrive in your inbox.');
-    setEmail('');
+    showToast(
+      "Welcome to the Sanctuary Circle",
+      "Our botanical seasonal publication will arrive in your inbox.",
+    );
+    setEmail("");
   };
 
   return (
     <footer className="bg-[#203128] text-[#FAF7F2] border-t border-[#30473B] pt-16 pb-12">
+      <nav className="max-w-7xl mx-auto px-6 mb-8 flex gap-6 flex-wrap">
+        {siteConfig?.footer?.map((item: any) => (
+          <Link key={item.path} href={item.path}>
+            {item.label}
+          </Link>
+        ))}
+      </nav>
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        
         {/* Top Newsletter & Story Row */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 pb-14 border-b border-[#FAF7F2]/10">
-          
           <div className="lg:col-span-6 space-y-4">
             <span className="font-mono text-xs tracking-widest text-[#CAD6BC] uppercase">
               The Botanical Newsletter
@@ -36,10 +56,15 @@ export const Footer: React.FC = () => {
               A Little Wellness in Your Inbox.
             </h3>
             <p className="text-sm text-[#CAD6BC]/80 max-w-lg leading-relaxed">
-              Receive thoughtful essays on circadian health, botanical research from our compounding atelier, and seasonal invitations to private wellness gatherings.
+              Receive thoughtful essays on circadian health, botanical research
+              from our compounding atelier, and seasonal invitations to private
+              wellness gatherings.
             </p>
 
-            <form onSubmit={handleSubscribe} className="mt-4 flex flex-col sm:flex-row gap-3 max-w-md">
+            <form
+              onSubmit={handleSubscribe}
+              className="mt-4 flex flex-col sm:flex-row gap-3 max-w-md"
+            >
               <input
                 type="email"
                 value={email}
@@ -77,12 +102,54 @@ export const Footer: React.FC = () => {
                 Collections & Rituals
               </h4>
               <ul className="space-y-2.5 text-sm text-[#FAF7F2]/80">
-                <li><Link href="/collections" className="hover:text-[#CAD6BC] transition-colors">All Collections</Link></li>
-                <li><Link href="/collections/weight-management" className="hover:text-[#CAD6BC] transition-colors">Weight Management</Link></li>
-                <li><Link href="/collections/gummies" className="hover:text-[#CAD6BC] transition-colors">Wellness Gummies</Link></li>
-                <li><Link href="/collections/soaps" className="hover:text-[#CAD6BC] transition-colors">Soaps & Body Care</Link></li>
-                <li><Link href="/collections/bundles" className="hover:text-[#CAD6BC] transition-colors">Wellness Bundles</Link></li>
-                <li><Link href="/rituals" className="hover:text-[#CAD6BC] transition-colors">All Formulations</Link></li>
+                <li>
+                  <Link
+                    href="/collections"
+                    className="hover:text-[#CAD6BC] transition-colors"
+                  >
+                    All Collections
+                  </Link>
+                </li>
+                <li>
+                  <Link
+                    href="/collections/weight-management"
+                    className="hover:text-[#CAD6BC] transition-colors"
+                  >
+                    Weight Management
+                  </Link>
+                </li>
+                <li>
+                  <Link
+                    href="/collections/gummies"
+                    className="hover:text-[#CAD6BC] transition-colors"
+                  >
+                    Wellness Gummies
+                  </Link>
+                </li>
+                <li>
+                  <Link
+                    href="/collections/soaps"
+                    className="hover:text-[#CAD6BC] transition-colors"
+                  >
+                    Soaps & Body Care
+                  </Link>
+                </li>
+                <li>
+                  <Link
+                    href="/collections/bundles"
+                    className="hover:text-[#CAD6BC] transition-colors"
+                  >
+                    Wellness Bundles
+                  </Link>
+                </li>
+                <li>
+                  <Link
+                    href="/rituals"
+                    className="hover:text-[#CAD6BC] transition-colors"
+                  >
+                    All Formulations
+                  </Link>
+                </li>
               </ul>
             </div>
 
@@ -92,11 +159,46 @@ export const Footer: React.FC = () => {
                 The Sanctuary
               </h4>
               <ul className="space-y-2.5 text-sm text-[#FAF7F2]/80">
-                <li><Link href="/about" className="hover:text-[#CAD6BC] transition-colors">Our Manifesto</Link></li>
-                <li><Link href="/science" className="hover:text-[#CAD6BC] transition-colors">Metabolic Science</Link></li>
-                <li><Link href="/ingredients" className="hover:text-[#CAD6BC] transition-colors">Botanical Sourcing</Link></li>
-                <li><Link href="/atelier" className="hover:text-[#CAD6BC] transition-colors">Physical Ateliers</Link></li>
-                <li><Link href="/journal" className="hover:text-[#CAD6BC] transition-colors">The House Journal</Link></li>
+                <li>
+                  <Link
+                    href="/about"
+                    className="hover:text-[#CAD6BC] transition-colors"
+                  >
+                    Our Manifesto
+                  </Link>
+                </li>
+                <li>
+                  <Link
+                    href="/science"
+                    className="hover:text-[#CAD6BC] transition-colors"
+                  >
+                    Metabolic Science
+                  </Link>
+                </li>
+                <li>
+                  <Link
+                    href="/ingredients"
+                    className="hover:text-[#CAD6BC] transition-colors"
+                  >
+                    Botanical Sourcing
+                  </Link>
+                </li>
+                <li>
+                  <Link
+                    href="/atelier"
+                    className="hover:text-[#CAD6BC] transition-colors"
+                  >
+                    Physical Ateliers
+                  </Link>
+                </li>
+                <li>
+                  <Link
+                    href="/journal"
+                    className="hover:text-[#CAD6BC] transition-colors"
+                  >
+                    The House Journal
+                  </Link>
+                </li>
               </ul>
             </div>
 
@@ -106,16 +208,57 @@ export const Footer: React.FC = () => {
                 Appointments
               </h4>
               <ul className="space-y-2.5 text-sm text-[#FAF7F2]/80">
-                <li><Link href="/consultation" className="hover:text-[#CAD6BC] transition-colors">Book Consultation</Link></li>
-                <li><Link href="/contact" className="hover:text-[#CAD6BC] transition-colors">Atelier Concierge</Link></li>
-                <li><Link href="/faq" className="hover:text-[#CAD6BC] transition-colors">Common Inquiries</Link></li>
-                <li><Link href="/admin/videos" className="hover:text-[#CAD6BC] transition-colors">Commercial Studio (CMS)</Link></li>
-                <li><Link href="/privacy-policy" className="hover:text-[#CAD6BC] transition-colors">Privacy Policy</Link></li>
-                <li><Link href="/terms-and-conditions" className="hover:text-[#CAD6BC] transition-colors">Terms of Practice</Link></li>
+                <li>
+                  <Link
+                    href="/consultation"
+                    className="hover:text-[#CAD6BC] transition-colors"
+                  >
+                    Book Consultation
+                  </Link>
+                </li>
+                <li>
+                  <Link
+                    href="/contact"
+                    className="hover:text-[#CAD6BC] transition-colors"
+                  >
+                    Atelier Concierge
+                  </Link>
+                </li>
+                <li>
+                  <Link
+                    href="/faq"
+                    className="hover:text-[#CAD6BC] transition-colors"
+                  >
+                    Common Inquiries
+                  </Link>
+                </li>
+                <li>
+                  <Link
+                    href="/admin/videos"
+                    className="hover:text-[#CAD6BC] transition-colors"
+                  >
+                    Commercial Studio (CMS)
+                  </Link>
+                </li>
+                <li>
+                  <Link
+                    href="/privacy-policy"
+                    className="hover:text-[#CAD6BC] transition-colors"
+                  >
+                    Privacy Policy
+                  </Link>
+                </li>
+                <li>
+                  <Link
+                    href="/terms-and-conditions"
+                    className="hover:text-[#CAD6BC] transition-colors"
+                  >
+                    Terms of Practice
+                  </Link>
+                </li>
               </ul>
             </div>
           </div>
-
         </div>
 
         {/* Large Wordmark Banner */}
@@ -131,17 +274,30 @@ export const Footer: React.FC = () => {
         {/* Regulatory & FSSAI Declarations */}
         <div className="py-6 border-b border-[#FAF7F2]/10 text-[11px] text-[#CAD6BC]/60 space-y-2 leading-relaxed">
           <p>
-            <strong className="text-[#CAD6BC]/80">Health Declaration & Transparency:</strong> The botanical formulations, lifestyle rituals, and guidance provided by The Wellness House are designed to support general nutritional, circadian, and sensory well-being. Our botanical supplements are not intended to diagnose, treat, cure, or prevent any acute or chronic medical condition. Always consult your qualified healthcare practitioner before adopting new wellness practices or supplements.
+            <strong className="text-[#CAD6BC]/80">
+              Health Declaration & Transparency:
+            </strong>{" "}
+            The botanical formulations, lifestyle rituals, and guidance provided
+            by The Wellness House are designed to support general nutritional,
+            circadian, and sensory well-being. Our botanical supplements are not
+            intended to diagnose, treat, cure, or prevent any acute or chronic
+            medical condition. Always consult your qualified healthcare
+            practitioner before adopting new wellness practices or supplements.
           </p>
           <p>
-            Formulated in compliance with Food Safety and Standards Authority of India (FSSAI) guidelines. FSSAI Central License: 10021064000318. Cold-process bath bars saponified under cosmetic standards.
+            Formulated in compliance with Food Safety and Standards Authority of
+            India (FSSAI) guidelines. FSSAI Central License: 10021064000318.
+            Cold-process bath bars saponified under cosmetic standards.
           </p>
         </div>
 
         {/* Bottom Copyright & Locations */}
         <div className="pt-6 flex flex-col sm:flex-row items-center justify-between text-xs text-[#CAD6BC]/70 gap-4">
           <div>
-            <span>© {new Date().getFullYear()} The Wellness House Pvt. Ltd. All rights reserved.</span>
+            <span>
+              © {new Date().getFullYear()} The Wellness House Pvt. Ltd. All
+              rights reserved.
+            </span>
           </div>
 
           <div className="flex items-center gap-6">
@@ -151,7 +307,6 @@ export const Footer: React.FC = () => {
             </span>
           </div>
         </div>
-
       </div>
     </footer>
   );
