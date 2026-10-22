@@ -12,7 +12,16 @@ export class AppError extends Error {
   }
 }
 export function origin() {
-  return new URL(process.env.APP_ORIGIN || "http://localhost:3000").origin;
+  if (process.env.APP_ORIGIN) {
+    return new URL(process.env.APP_ORIGIN).origin;
+  }
+  if (process.env.VERCEL_PROJECT_PRODUCTION_URL) {
+    return `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}`;
+  }
+  if (process.env.VERCEL_URL) {
+    return `https://${process.env.VERCEL_URL}`;
+  }
+  return "http://localhost:3000";
 }
 export function cookieName(name: string) {
   return `${process.env.NODE_ENV === "production" ? "__Host-" : ""}twh_${name}`;

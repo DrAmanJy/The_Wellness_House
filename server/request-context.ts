@@ -12,10 +12,9 @@ export function requestSnapshot<T>(
   read: () => Promise<T>,
 ): Promise<T> {
   const context = requestContext.getStore();
-  if (!context)
-    throw new Error(
-      "Use npm run dev/start: request context is required for consistent metadata",
-    );
+  if (!context) {
+    return read();
+  }
   let value = context.values.get(key);
   if (!value) {
     value = read();
