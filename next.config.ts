@@ -1,17 +1,12 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  distDir: process.env.NODE_ENV === "production" ? ".next-production" : ".next",
   reactStrictMode: true,
   eslint: {
     ignoreDuringBuilds: true,
   },
   typescript: {
     ignoreBuildErrors: false,
-    tsconfigPath:
-      process.env.NODE_ENV === "production"
-        ? "tsconfig.build.json"
-        : "tsconfig.json",
   },
   // Allow access to remote image placeholder and curated wellness photography.
   images: {

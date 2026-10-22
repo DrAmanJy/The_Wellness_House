@@ -7,7 +7,7 @@ const __dirname = path.dirname(__filename);
 
 const compat = new FlatCompat({ baseDirectory: __dirname });
 const config = [
-  { ignores: [".next/**", ".next-production/**", "node_modules/**", "work/**"] },
+  { ignores: [".next/**", "node_modules/**", "work/**"] },
   ...compat.extends("next/core-web-vitals"),
 ];
 
