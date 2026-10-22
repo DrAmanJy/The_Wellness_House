@@ -1,14 +1,12 @@
-import { MetadataRoute } from 'next';
-
-export default function robots(): MetadataRoute.Robots {
-  const baseUrl = process.env.APP_URL || 'https://thewellnesshouse.in';
-
+import { origin } from "@/server/security/http";
+export const dynamic = "force-dynamic";
+export default function robots() {
   return {
     rules: {
-      userAgent: '*',
-      allow: '/',
-      disallow: ['/admin', '/api/'],
+      userAgent: "*",
+      allow: "/",
+      disallow: ["/admin", "/account", "/api", "/consultation"],
     },
-    sitemap: `${baseUrl}/sitemap.xml`,
+    sitemap: origin() + "/sitemap.xml",
   };
 }
