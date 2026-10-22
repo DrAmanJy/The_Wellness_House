@@ -1,29 +1,31 @@
-import { Metadata } from 'next';
-import Link from 'next/link';
-import { ArrowRight, Clock, BookOpen } from 'lucide-react';
-import { BLOG_POSTS } from '@/lib/rituals-data';
-import { EditorialImage } from '@/components/editorial-image';
-import { Reveal, StaggerContainer, StaggerItem } from '@/components/motion';
+import { Metadata } from "next";
+import Link from "next/link";
+import { ArrowRight, Clock, BookOpen } from "lucide-react";
+import { posts } from "@/server/modules/content/public";
+import { EditorialImage } from "@/components/editorial-image";
+import { Reveal, StaggerContainer, StaggerItem } from "@/components/motion";
 
 export const metadata: Metadata = {
-  title: 'The House Journal | Notes on Living Well | The Wellness House',
-  description: 'Thoughtful long-form essays and practical botanical guides on circadian rhythms, supplement label transparency, and sustainable everyday rituals.',
+  alternates:{canonical:'/journal'},
+  title: "The House Journal | Notes on Living Well | The Wellness House",
+  description:
+    "Thoughtful long-form essays and practical botanical guides on circadian rhythms, supplement label transparency, and sustainable everyday rituals.",
 };
 
-export default function JournalPage() {
+export default async function JournalPage() {
+  const BLOG_POSTS = await posts();
   const featured = BLOG_POSTS[0];
   const remaining = BLOG_POSTS.slice(1);
 
   const articleImages = [
-    'https://images.unsplash.com/photo-1506126613408-eca07ce68773?auto=format&fit=crop&w=1200&q=80',
-    'https://images.unsplash.com/photo-1527799820374-dcf8d9d4a388?auto=format&fit=crop&w=1200&q=80',
-    'https://images.unsplash.com/photo-1505576399279-565b52d4ac71',
-    'https://images.unsplash.com/photo-1576426863848-c21f53c60b19?auto=format&fit=crop&w=1200&q=80'
+    "https://images.unsplash.com/photo-1506126613408-eca07ce68773?auto=format&fit=crop&w=1200&q=80",
+    "https://images.unsplash.com/photo-1527799820374-dcf8d9d4a388?auto=format&fit=crop&w=1200&q=80",
+    "https://images.unsplash.com/photo-1505576399279-565b52d4ac71",
+    "https://images.unsplash.com/photo-1576426863848-c21f53c60b19?auto=format&fit=crop&w=1200&q=80",
   ];
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 sm:py-16 space-y-16">
-      
       {/* Editorial Header */}
       <Reveal variant="up">
         <div className="text-center max-w-2xl mx-auto">
@@ -34,7 +36,8 @@ export default function JournalPage() {
             Notes on Living Well
           </h1>
           <p className="text-sm sm:text-base text-[#71776F] mt-3 leading-relaxed">
-            Explorations in botanical science, circadian biology, and the art of slowing down in an accelerated world.
+            Explorations in botanical science, circadian biology, and the art of
+            slowing down in an accelerated world.
           </p>
         </div>
       </Reveal>
@@ -44,10 +47,11 @@ export default function JournalPage() {
         <Reveal variant="up" delay={0.1}>
           <div className="bg-[#FFFEFA] rounded-3xl overflow-hidden border border-[#30473B]/10 shadow-md">
             <div className="grid grid-cols-1 lg:grid-cols-12 items-center">
-              
               <div className="lg:col-span-7 p-8 sm:p-12 space-y-4">
                 <div className="flex items-center gap-2 text-xs text-[#71776F]">
-                  <span className="font-mono uppercase tracking-wider text-[#30473B] font-semibold">{featured.category}</span>
+                  <span className="font-mono uppercase tracking-wider text-[#30473B] font-semibold">
+                    {featured.category}
+                  </span>
                   <span>·</span>
                   <span className="flex items-center gap-1">
                     <Clock className="w-3.5 h-3.5" />
@@ -57,7 +61,10 @@ export default function JournalPage() {
                   <span>{featured.publishedDate}</span>
                 </div>
 
-                <Link href={`/journal/${featured.slug}`} className="block group">
+                <Link
+                  href={`/journal/${featured.slug}`}
+                  className="block group"
+                >
                   <h2 className="font-serif text-2xl sm:text-4xl text-[#252A25] group-hover:text-[#30473B] transition-colors leading-tight font-normal">
                     {featured.title}
                   </h2>
@@ -68,7 +75,9 @@ export default function JournalPage() {
                 </p>
 
                 <div className="pt-4 flex items-center justify-between">
-                  <span className="text-xs text-[#71776F]">By {featured.author}</span>
+                  <span className="text-xs text-[#71776F]">
+                    By {featured.author}
+                  </span>
                   <Link
                     href={`/journal/${featured.slug}`}
                     className="inline-flex items-center gap-1.5 text-xs font-medium text-[#30473B] uppercase tracking-wider hover:underline"
@@ -88,19 +97,19 @@ export default function JournalPage() {
                   caption="Editorial Lead · Morning Stillness"
                 />
               </div>
-
             </div>
           </div>
         </Reveal>
       )}
 
       {/* Remaining Journal Articles Grid */}
-      <StaggerContainer className="grid grid-cols-1 md:grid-cols-3 gap-8" stagger={0.1}>
+      <StaggerContainer
+        className="grid grid-cols-1 md:grid-cols-3 gap-8"
+        stagger={0.1}
+      >
         {remaining.map((post, idx) => (
           <StaggerItem key={post.id} className="h-full">
-            <article 
-              className="bg-[#FFFEFA] rounded-2xl overflow-hidden border border-[#30473B]/10 shadow-xs flex flex-col justify-between group hover:border-[#30473B]/30 hover:shadow-lg transition-all duration-300 h-full"
-            >
+            <article className="bg-[#FFFEFA] rounded-2xl overflow-hidden border border-[#30473B]/10 shadow-xs flex flex-col justify-between group hover:border-[#30473B]/30 hover:shadow-lg transition-all duration-300 h-full">
               <div>
                 <div className="aspect-16/10 w-full overflow-hidden">
                   <EditorialImage
@@ -113,11 +122,16 @@ export default function JournalPage() {
 
                 <div className="p-6 space-y-3">
                   <div className="flex items-center justify-between text-xs text-[#71776F] font-mono">
-                    <span className="text-[#30473B] uppercase font-semibold">{post.category}</span>
+                    <span className="text-[#30473B] uppercase font-semibold">
+                      {post.category}
+                    </span>
                     <span>{post.readTime}</span>
                   </div>
 
-                  <Link href={`/journal/${post.slug}`} className="block group-hover:text-[#30473B] transition-colors">
+                  <Link
+                    href={`/journal/${post.slug}`}
+                    className="block group-hover:text-[#30473B] transition-colors"
+                  >
                     <h3 className="font-serif text-xl font-medium text-[#252A25] leading-snug">
                       {post.title}
                     </h3>
@@ -148,8 +162,12 @@ export default function JournalPage() {
       <Reveal variant="up">
         <div className="bg-[#FAF7F2] rounded-3xl p-8 sm:p-12 border border-[#30473B]/10 flex flex-col sm:flex-row items-center justify-between gap-6">
           <div className="space-y-1 text-center sm:text-left">
-            <h3 className="font-serif text-2xl text-[#252A25]">Have a Question for Our Resident Botanist?</h3>
-            <p className="text-xs sm:text-sm text-[#71776F]">Book a private session in our New Delhi or Mumbai atelier.</p>
+            <h3 className="font-serif text-2xl text-[#252A25]">
+              Have a Question for Our Resident Botanist?
+            </h3>
+            <p className="text-xs sm:text-sm text-[#71776F]">
+              Book a private session in our New Delhi or Mumbai atelier.
+            </p>
           </div>
           <Link
             href="/consultation"
@@ -159,7 +177,6 @@ export default function JournalPage() {
           </Link>
         </div>
       </Reveal>
-
     </div>
   );
 }
