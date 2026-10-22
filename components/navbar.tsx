@@ -12,9 +12,11 @@ import {
   ChevronDown,
   ShoppingBag,
   Sparkles,
+  User,
 } from "lucide-react";
 import { motion, AnimatePresence, useReducedMotion } from "motion/react";
 import { useStore } from "@/context/store-context";
+import { useCustomer } from "@/context/customer-context";
 import { easing, duration } from "@/lib/motion/tokens";
 import {
   megaMenuVariants,
@@ -78,6 +80,7 @@ const MEGA_MENU_COLLECTIONS: MegaMenuCollection[] = [
 export const Navbar: React.FC = () => {
   const pathname = usePathname();
   const { setIsSearchOpen, setIsCartOpen, cartCount, siteConfig } = useStore();
+  const { customer } = useCustomer();
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isMegaMenuOpen, setIsMegaMenuOpen] = useState(false);
@@ -324,6 +327,23 @@ export const Navbar: React.FC = () => {
             >
               <Search className="w-[18px] h-[18px]" />
             </button>
+
+            {/* Customer Account / Sign In */}
+            <Link
+              href="/account"
+              className="p-2 text-[#252A25]/70 hover:text-[#30473B] transition-colors rounded-full hover:bg-[#CAD6BC]/15 flex items-center justify-center focus:outline-hidden"
+              aria-label={customer ? "My Account" : "Sign In / Account"}
+              title={customer ? `Account (${customer.name || "Member"})` : "Sign In / Account"}
+              suppressHydrationWarning
+            >
+              {customer ? (
+                <span className="w-[18px] h-[18px] rounded-full bg-[#30473B] text-white text-[10px] font-serif font-bold flex items-center justify-center">
+                  {(customer.name || "M").charAt(0).toUpperCase()}
+                </span>
+              ) : (
+                <User className="w-[18px] h-[18px]" />
+              )}
+            </Link>
 
             {/* Botanical Bag / Cart Drawer */}
             <button
@@ -646,6 +666,19 @@ export const Navbar: React.FC = () => {
                     {link.label}
                   </Link>
                 ))}
+
+                <Link
+                  href="/account"
+                  onClick={() => setIsMobileMenuOpen(false)}
+                  className={`px-3 py-2 text-base font-medium rounded-lg transition-colors flex items-center gap-2.5 ${
+                    pathname.startsWith("/account")
+                      ? "text-[#30473B] bg-[#CAD6BC]/20 font-semibold"
+                      : "text-[#252A25] hover:bg-[#CAD6BC]/10"
+                  }`}
+                >
+                  <User className="w-4 h-4" />
+                  <span>{customer ? "My Account" : "Sign In / Account"}</span>
+                </Link>
 
                 <div className="pt-4 border-t border-[#30473B]/10 flex flex-col space-y-2.5 px-3">
                   <Link

@@ -108,9 +108,14 @@ export function CustomerProvider({ children }: { children: React.ReactNode }) {
     window.location.assign("/account");
   }
   async function beginPurchase(input: Parameters<State["beginPurchase"]>[0]) {
-    const result = await api("purchase-intents", "POST", input);
-    if (result.requiresAuth) setLogin(result.intentId);
-    else window.location.assign(result.url);
+    try {
+      const result = await api("purchase-intents", "POST", input);
+      if (result.requiresAuth) setLogin(result.intentId);
+      else window.location.assign(result.url);
+    } catch (e) {
+      console.error("Purchase intent error, opening login:", e);
+      setLogin("guest-checkout");
+    }
   }
   return (
     <Context.Provider

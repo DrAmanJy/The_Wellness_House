@@ -11,9 +11,20 @@ export class AppError extends Error {
     super(message);
   }
 }
-export function origin() {
+export function origin(req?: Request) {
+  if (req) {
+    const host = req.headers.get("x-forwarded-host") || req.headers.get("host");
+    if (host) {
+      const proto =
+        req.headers.get("x-forwarded-proto") ||
+        (req.url?.startsWith("https") ? "https" : "http");
+      return `${proto}://${host}`;
+    }
+  }
   if (process.env.APP_ORIGIN) {
-    return new URL(process.env.APP_ORIGIN).origin;
+    try {
+      return new URL(process.env.APP_ORIGIN).origin;
+    } catch {}
   }
   if (process.env.VERCEL_PROJECT_PRODUCTION_URL) {
     return `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}`;
@@ -21,21 +32,94 @@ export function origin() {
   if (process.env.VERCEL_URL) {
     return `https://${process.env.VERCEL_URL}`;
   }
+  if (process.env.NODE_ENV === "production") {
+    return "https://the-wellness-house.vercel.app";
+  }
   return "http://localhost:3000";
 }
+
+export function isAllowedOrigin(req: Request): boolean {
+  const reqOrigin = req.headers.get("origin");
+  if (!reqOrigin) {
+    const referer = req.headers.get("referer");
+    if (!referer) return true;
+    try {
+      return matchesOrigin(req, new URL(referer).origin);
+    } catch {
+      return false;
+    }
+  }
+  return matchesOrigin(req, reqOrigin);
+}
+
+function matchesOrigin(req: Request, targetOrigin: string): boolean {
+  if (targetOrigin === origin(req)) return true;
+  if (process.env.APP_ORIGIN) {
+    try {
+      if (new URL(process.env.APP_ORIGIN).origin === targetOrigin) return true;
+    } catch {}
+  }
+  try {
+    if (new URL(req.url).origin === targetOrigin) return true;
+  } catch {}
+  const host = req.headers.get("x-forwarded-host") || req.headers.get("host");
+  if (host) {
+    const proto =
+      req.headers.get("x-forwarded-proto") ||
+      (req.url.startsWith("https") ? "https" : "http");
+    if (
+      targetOrigin === `${proto}://${host}` ||
+      targetOrigin === `https://${host}` ||
+      targetOrigin === `http://${host}`
+    ) {
+      return true;
+    }
+  }
+  if (
+    process.env.VERCEL_PROJECT_PRODUCTION_URL &&
+    targetOrigin === `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}`
+  ) {
+    return true;
+  }
+  if (
+    process.env.VERCEL_URL &&
+    targetOrigin === `https://${process.env.VERCEL_URL}`
+  ) {
+    return true;
+  }
+  if (targetOrigin.endsWith(".vercel.app")) {
+    return true;
+  }
+  if (
+    process.env.NODE_ENV !== "production" &&
+    (targetOrigin.startsWith("http://localhost:") ||
+      targetOrigin.startsWith("http://127.0.0.1:"))
+  ) {
+    return true;
+  }
+  return false;
+}
+
 export function cookieName(name: string) {
   return `${process.env.NODE_ENV === "production" ? "__Host-" : ""}twh_${name}`;
 }
 export function cookieValue(req: Request, name: string) {
-  return (
-    (req.headers.get("cookie") || "")
-      .split(";")
-      .map((x) => x.trim())
-      .find((x) => x.startsWith(cookieName(name) + "="))
-      ?.split("=")
-      .slice(1)
-      .join("=") || ""
-  );
+  const cookies = (req.headers.get("cookie") || "")
+    .split(";")
+    .map((x) => x.trim());
+  const prefixes = [
+    cookieName(name) + "=",
+    `__Host-twh_${name}=`,
+    `twh_${name}=`,
+  ];
+  for (const c of cookies) {
+    for (const prefix of prefixes) {
+      if (c.startsWith(prefix)) {
+        return c.slice(prefix.length);
+      }
+    }
+  }
+  return "";
 }
 export function cookie(
   name: string,
@@ -89,7 +173,7 @@ export function csrf(req: Request) {
   const a = cookieValue(req, "csrf"),
     b = req.headers.get("x-csrf-token") || "";
   if (
-    req.headers.get("origin") !== origin() ||
+    !isAllowedOrigin(req) ||
     !/^[A-Za-z0-9_-]{43}$/.test(a) ||
     !/^[A-Za-z0-9_-]{43}$/.test(b) ||
     a.length !== b.length ||

@@ -12,7 +12,10 @@ let cachedCsrf: { token: string } | null = null;
 async function csrfToken() {
   if (cachedCsrf) return cachedCsrf;
   if (!csrfRequest)
-    csrfRequest = fetch("/api/v1/csrf", { cache: "no-store" })
+    csrfRequest = fetch("/api/v1/csrf", {
+      cache: "no-store",
+      credentials: "same-origin",
+    })
       .then(async (r) => {
         if (!r.ok)
           throw new ApiError(
@@ -48,6 +51,7 @@ export async function api<T = any>(
   const response = await fetch(`/api/v1/${path}`, {
     method,
     headers,
+    credentials: "same-origin",
     body: data === undefined ? undefined : JSON.stringify(data),
     cache: "no-store",
   });
