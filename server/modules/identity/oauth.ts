@@ -111,7 +111,7 @@ export async function begin(
     ],
   );
   const params: Record<string, string> = {
-    redirect_uri: `${origin()}/api/v1/auth/${provider}/callback`,
+    redirect_uri: `${origin(req)}/api/v1/auth/${provider}/callback`,
     scope: provider === "apple" ? "openid email name" : "openid email profile",
     state,
     nonce,
@@ -130,7 +130,7 @@ export async function begin(
           "oauth_" + hash(state).slice(0, 16),
           correlation,
           600,
-          provider === "apple" ? "None" : "Lax",
+          "None",
         ),
         "Cache-Control": "no-store",
         "Referrer-Policy": "no-referrer",
@@ -141,26 +141,30 @@ export async function begin(
 export async function callback(req: Request, provider: keyof typeof providers) {
   await limit(req, "oauth-callback", 30);
   const rawBody = req.method === "POST" ? await readRawBody(req) : undefined;
-  const grantRequest = rawBody
-    ? new Request(req.url, {
-        method: "POST",
-        headers: req.headers,
-        body: rawBody,
-      })
-    : req;
+  const callbackUrl = `${origin(req)}${new URL(req.url).pathname}${new URL(req.url).search}`;
+  const grantRequest = new Request(callbackUrl, {
+    method: req.method,
+    headers: req.headers,
+    body: rawBody,
+  });
   const posted =
     req.method === "POST"
       ? new URLSearchParams(rawBody!.toString("utf8"))
       : new URL(req.url).searchParams;
   const state = posted.get("state") || "";
+  if (!state)
+    throw new AppError(
+      400,
+      "OAUTH_STATE",
+      "Sign-in state missing. Start again.",
+    );
+  const stateHash = hash(state);
+  const stateCookieName = "oauth_" + stateHash.slice(0, 16);
+  const cookieVal = cookieValue(req, stateCookieName);
   const t = (
     await pool.query(
-      "DELETE FROM oauth_transactions WHERE state_hash=$1 AND cookie_hash=$2 AND provider=$3 AND expires_at>now() RETURNING *",
-      [
-        hash(state),
-        hash(cookieValue(req, "oauth_" + hash(state).slice(0, 16))),
-        provider,
-      ],
+      "DELETE FROM oauth_transactions WHERE state_hash=$1 AND provider=$2 AND expires_at>now() RETURNING *",
+      [stateHash, provider],
     )
   ).rows[0];
   if (!t)
@@ -169,6 +173,13 @@ export async function callback(req: Request, provider: keyof typeof providers) {
       "OAUTH_STATE",
       "Sign-in expired or invalid. Start again.",
     );
+  if (cookieVal && hash(cookieVal) !== t.cookie_hash) {
+    throw new AppError(
+      400,
+      "OAUTH_STATE",
+      "Sign-in correlation mismatch. Start again.",
+    );
+  }
   const conf = await config(provider);
   const result = await oidc.authorizationCodeGrant(conf, grantRequest, {
     expectedState: state,
@@ -313,7 +324,7 @@ export async function callback(req: Request, provider: keyof typeof providers) {
   headers.append("Set-Cookie", cookie("session", raw, 604800));
   headers.append(
     "Set-Cookie",
-    cookie("oauth_" + hash(state).slice(0, 16), "", 0),
+    cookie("oauth_" + hash(state).slice(0, 16), "", 0, "None"),
   );
   headers.append("Set-Cookie", cookie("guest", token(), 2592000));
   return new Response(null, { status: 303, headers });
