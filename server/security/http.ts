@@ -129,11 +129,11 @@ export function cookie(
 ) {
   return `${cookieName(name)}=${value}; Path=/; HttpOnly; SameSite=${sameSite}; Max-Age=${maxAge}${process.env.NODE_ENV === "production" || sameSite === "None" ? "; Secure" : ""}`;
 }
-export function json(value: unknown, status = 200) {
+export function json(value: unknown, status = 200, cacheControl = "private, no-store") {
   return Response.json(value, {
     status,
     headers: {
-      "Cache-Control": "private, no-store",
+      "Cache-Control": cacheControl,
       "X-Content-Type-Options": "nosniff",
     },
   });
