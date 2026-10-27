@@ -1,6 +1,8 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  // Allow an isolated local production check alongside the normal dev build.
+  distDir: process.env.NEXT_BUILD_DIR || ".next",
   reactStrictMode: true,
   eslint: {
     ignoreDuringBuilds: true,

@@ -12,3 +12,5 @@ Customer checkout and account settings: see [CUSTOMER-CHECKOUT.md](docs/CUSTOMER
 ## Latest API audit
 
 See [API security and efficiency audit](docs/API-SECURITY-AUDIT.md) for the current route inventory, fixes, regression checks and remaining provider/development-tool limitations.
+
+API latency work and deployment requirements: [performance report](docs/API-PERFORMANCE.md). Migration 010 must precede deployment; functions should run beside the database in Singapore. No Redis is used.
