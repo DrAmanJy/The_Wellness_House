@@ -12,6 +12,7 @@ import { api } from "@/lib/api-client";
 import { useCustomer } from "./customer-context";
 import { getBootstrapPromise } from "./customer-context";
 import type { SupplyVariant } from "@/lib/commerce";
+import { getVariants } from "@/lib/variants-client";
 interface ToastMessage {
   id: string;
   title: string;
@@ -127,6 +128,8 @@ export function StoreProvider({
       bootstrapPromise
         .then((data) => {
           if (epoch.current !== generation) return;
+          if ((data.user?.userId || null) !== (customer?.userId || null))
+            return;
           accept(data.cart);
           setSaved(data.savedRituals || []);
         })
@@ -183,12 +186,13 @@ export function StoreProvider({
   ) {
     const operationId = crypto.randomUUID();
     const sourceCartId = current.current.id;
+    const sourceGeneration = epoch.current;
     const success = await mutate(async () => {
-      const variants = await api<SupplyVariant[]>("variants/" + ritual.slug);
+      const variants = await getVariants(ritual.slug);
+      if (sourceGeneration !== epoch.current)
+        throw new Error("Your session changed. Please try again");
       const variant = variants.find((v) => v.supplyCode === supplyCode);
       if (!variant) throw new Error("This supply is unavailable");
-      if (!sourceCartId)
-        throw new Error("Your bag is still loading. Try again in a moment.");
       return api("cart/items/" + variant.id, "POST", {
         quantity,
         operationId,
@@ -224,7 +228,10 @@ export function StoreProvider({
   };
   const clearCart = () => {
     void mutate(() =>
-      api("cart", "DELETE", { expectedVersion: current.current.version,cartId:current.current.id }),
+      api("cart", "DELETE", {
+        expectedVersion: current.current.version,
+        cartId: current.current.id,
+      }),
     );
   };
   const flushCart = useCallback(() => queue.current, []);

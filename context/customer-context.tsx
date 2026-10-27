@@ -93,12 +93,14 @@ export function CustomerProvider({ children }: { children: React.ReactNode }) {
     try {
       channel.current = new BroadcastChannel("twh-account");
       channel.current.onmessage = () => {
+        clearBootstrapPromise();
         setCustomer(null);
         setPreferences(null);
         void refresh();
       };
     } catch {}
     const expired = () => {
+      clearBootstrapPromise();
       epoch.current++;
       setCustomer(null);
       setPreferences(null);
@@ -115,6 +117,7 @@ export function CustomerProvider({ children }: { children: React.ReactNode }) {
   }, []);
   async function signOut() {
     await api("logout", "POST");
+    clearBootstrapPromise();
     epoch.current++;
     setCustomer(null);
     setPreferences(null);
