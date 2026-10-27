@@ -68,8 +68,7 @@ const MEGA_MENU_COLLECTIONS: MegaMenuCollection[] = [
   {
     title: "Wellness Bundles",
     tag: "Curated Regimens",
-    description:
-      "Targeted daily regimens with brass scoop & linen journal",
+    description: "Targeted daily regimens with brass scoop & linen journal",
     href: "/collections/bundles",
     image:
       "https://images.unsplash.com/photo-1556228720-195a672e8a03?auto=format&fit=crop&w=600&q=80",
@@ -331,9 +330,14 @@ export const Navbar: React.FC = () => {
             {/* Customer Account / Sign In */}
             <Link
               href="/account"
+              prefetch={false}
               className="p-2 text-[#252A25]/70 hover:text-[#30473B] transition-colors rounded-full hover:bg-[#CAD6BC]/15 flex items-center justify-center focus:outline-hidden"
               aria-label={customer ? "My Account" : "Sign In / Account"}
-              title={customer ? `Account (${customer.name || "Member"})` : "Sign In / Account"}
+              title={
+                customer
+                  ? `Account (${customer.name || "Member"})`
+                  : "Sign In / Account"
+              }
               suppressHydrationWarning
             >
               {customer ? (
@@ -372,6 +376,7 @@ export const Navbar: React.FC = () => {
             {/* CTA Button */}
             <Link
               href="/consultation"
+              prefetch={false}
               className="px-4 py-2.5 text-xs sm:text-sm font-medium text-[#FAF7F2] bg-[#30473B] hover:bg-[#203128] rounded-lg btn-primary shadow-xs flex items-center gap-1.5 whitespace-nowrap"
             >
               <span>Consultation</span>
@@ -550,6 +555,7 @@ export const Navbar: React.FC = () => {
                       </p>
                       <Link
                         href="/consultation"
+                        prefetch={false}
                         onClick={() => setIsMegaMenuOpen(false)}
                         className="inline-flex items-center gap-1.5 text-xs font-medium text-[#FAF7F2] bg-[#30473B] hover:bg-[#203128] px-3.5 py-2 rounded-lg transition-colors shadow-xs w-full justify-center mt-1"
                       >
@@ -669,6 +675,7 @@ export const Navbar: React.FC = () => {
 
                 <Link
                   href="/account"
+                  prefetch={false}
                   onClick={() => setIsMobileMenuOpen(false)}
                   className={`px-3 py-2 text-base font-medium rounded-lg transition-colors flex items-center gap-2.5 ${
                     pathname.startsWith("/account")
@@ -697,6 +704,7 @@ export const Navbar: React.FC = () => {
                   </Link>
                   <Link
                     href="/consultation"
+                    prefetch={false}
                     onClick={() => setIsMobileMenuOpen(false)}
                     className="mt-3 py-3 text-center bg-[#30473B] hover:bg-[#203128] text-[#FAF7F2] rounded-lg text-xs font-medium uppercase tracking-widest shadow-xs transition-colors"
                   >

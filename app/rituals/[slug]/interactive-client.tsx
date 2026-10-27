@@ -12,7 +12,7 @@ import {
   AnimatedPrice,
 } from "@/components/motion";
 import { money, type SupplyVariant } from "@/lib/commerce";
-import { api } from "@/lib/api-client";
+import { getVariants } from "@/lib/variants-client";
 import { useCustomer } from "@/context/customer-context";
 
 interface Props {
@@ -23,7 +23,7 @@ export const RitualDetailInteractive: React.FC<Props> = ({ ritual }) => {
   const { beginPurchase } = useCustomer();
   const [variants, setVariants] = useState<SupplyVariant[]>([]);
   useEffect(() => {
-    api<SupplyVariant[]>("variants/" + ritual.slug)
+    getVariants(ritual.slug)
       .then(setVariants)
       .catch(() => {});
   }, [ritual.slug]);
@@ -92,7 +92,9 @@ export const RitualDetailInteractive: React.FC<Props> = ({ ritual }) => {
     setIsAdding(true);
     try {
       if (!selectedVariant)
-        throw new Error("This option is currently unavailable. Please try again.");
+        throw new Error(
+          "This option is currently unavailable. Please try again.",
+        );
       await beginPurchase({
         mode: "buy_now",
         variantId: selectedVariant.id,
@@ -112,10 +114,7 @@ export const RitualDetailInteractive: React.FC<Props> = ({ ritual }) => {
   const handleShare = () => {
     if (typeof navigator !== "undefined" && navigator.clipboard) {
       navigator.clipboard.writeText(window.location.href);
-      showToast(
-        "Link Copied",
-        "Product link copied to clipboard.",
-      );
+      showToast("Link Copied", "Product link copied to clipboard.");
     }
   };
 

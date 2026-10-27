@@ -1,14 +1,14 @@
-'use client';
+"use client";
 
-import React, { useEffect, useState } from 'react';
-import Link from 'next/link';
-import { ShoppingBag, Check } from 'lucide-react';
-import { motion } from 'motion/react';
-import { RitualFormulation } from '@/lib/types';
-import { EditorialImage } from '@/components/editorial-image';
-import { useStore } from '@/context/store-context';
-import { money, type SupplyVariant } from '@/lib/commerce';
-import { api } from '@/lib/api-client';
+import React, { useEffect, useState } from "react";
+import Link from "next/link";
+import { ShoppingBag, Check } from "lucide-react";
+import { motion } from "motion/react";
+import { RitualFormulation } from "@/lib/types";
+import { EditorialImage } from "@/components/editorial-image";
+import { useStore } from "@/context/store-context";
+import { money, type SupplyVariant } from "@/lib/commerce";
+import { getVariants } from "@/lib/variants-client";
 
 interface RitualCardProps {
   ritual: RitualFormulation;
@@ -19,8 +19,12 @@ export const RitualCard: React.FC<RitualCardProps> = ({ ritual }) => {
   const [price, setPrice] = useState<string | null>(null);
 
   useEffect(() => {
-    api<SupplyVariant[]>('variants/' + ritual.slug)
-      .then((v) => setPrice(v.find((i) => i.supplyCode === 'standard-30')?.priceMinor ?? null))
+    getVariants(ritual.slug)
+      .then((v) =>
+        setPrice(
+          v.find((i) => i.supplyCode === "standard-30")?.priceMinor ?? null,
+        ),
+      )
       .catch(() => {});
   }, [ritual.slug]);
 
@@ -49,19 +53,22 @@ export const RitualCard: React.FC<RitualCardProps> = ({ ritual }) => {
     <div className="group relative flex flex-col bg-[#FFFEFA] rounded-2xl overflow-hidden border border-[#30473B]/10 hover:border-[#30473B]/25 hover:shadow-lg transition-all duration-300">
       {/* Visual Showcase */}
       <div className="relative aspect-4/3 w-full bg-[#FAF7F2] overflow-hidden">
-        <Link href={`/rituals/${ritual.slug}`} className="block w-full h-full relative">
+        <Link
+          href={`/rituals/${ritual.slug}`}
+          className="block w-full h-full relative"
+        >
           {/* Primary Image */}
           <div className="w-full h-full transition-transform duration-700 ease-[cubic-bezier(0.22,1,0.36,1)] group-hover:scale-[1.03]">
             <EditorialImage
               src={
                 ritual.imageUrl ||
-                'https://images.unsplash.com/photo-1540555700478-4be289fbecef?auto=format&fit=crop&w=1200&q=80'
+                "https://images.unsplash.com/photo-1540555700478-4be289fbecef?auto=format&fit=crop&w=1200&q=80"
               }
               alt={ritual.title}
               fallbackVariant={ritual.artVariant}
               aspectClassName="w-full h-full"
               className={`w-full h-full object-cover transition-opacity duration-500 ${
-                secondaryImage ? 'group-hover:opacity-0' : ''
+                secondaryImage ? "group-hover:opacity-0" : ""
               }`}
             />
           </div>
@@ -95,8 +102,8 @@ export const RitualCard: React.FC<RitualCardProps> = ({ ritual }) => {
             disabled={isAdding}
             className={`px-3.5 py-2 rounded-xl text-xs font-medium flex items-center gap-1.5 shadow-md transition-all ${
               justAdded
-                ? 'bg-[#30473B] text-white'
-                : 'bg-[#FFFEFA] hover:bg-[#30473B] text-[#30473B] hover:text-white border border-[#30473B]/15'
+                ? "bg-[#30473B] text-white"
+                : "bg-[#FFFEFA] hover:bg-[#30473B] text-[#30473B] hover:text-white border border-[#30473B]/15"
             }`}
             aria-label={`Add ${ritual.title} to bag`}
           >
@@ -121,7 +128,10 @@ export const RitualCard: React.FC<RitualCardProps> = ({ ritual }) => {
       <div className="p-5 flex-1 flex flex-col justify-between">
         <div>
           {/* Title */}
-          <Link href={`/rituals/${ritual.slug}`} className="block group-hover:text-[#30473B] transition-colors">
+          <Link
+            href={`/rituals/${ritual.slug}`}
+            className="block group-hover:text-[#30473B] transition-colors"
+          >
             <h3 className="font-serif text-lg text-[#252A25] font-normal leading-snug">
               {ritual.title}
             </h3>
