@@ -3,6 +3,37 @@ import type { PoolClient } from "pg";
 import { AppError } from "../../security/http";
 import { hash } from "../../security/crypto";
 import type { Principal } from "../../security/session";
+/**
+ * Read-only cart ID lookup — no transaction, no advisory lock.
+ * Returns the active cart ID or null if none exists.
+ */
+export async function cartIdReadOnly(p: Principal | null, guest: string): Promise<string | null> {
+  if (p) {
+    const row = (
+      await pool.query(
+        "SELECT id FROM carts WHERE user_id=$1 AND state='active'",
+        [p.userId],
+      )
+    ).rows[0];
+    return (row?.id as string) ?? null;
+  }
+  const guestHash = hash(guest);
+  const row = (
+    await pool.query(
+      "SELECT id,state,expires_at FROM carts WHERE guest_hash=$1",
+      [guestHash],
+    )
+  ).rows[0];
+  if (!row) return null;
+  if (row.state !== "active" || row.expires_at <= new Date())
+    throw new AppError(
+      409,
+      "GUEST_CART_CONSUMED",
+      "Your bag changed after sign-in. Refresh and try again.",
+    );
+  return row.id as string;
+}
+
 export async function cart(p: Principal | null, guest: string) {
   return transaction(async (c) => {
     await c.query("SELECT pg_advisory_xact_lock(hashtextextended($1,0))", [
@@ -81,10 +112,11 @@ export async function cartItems(id: string) {
   }));
 }
 export async function snapshot(id: string) {
-  const items = await cartItems(id);
-  const row = (await pool.query("SELECT version FROM carts WHERE id=$1", [id]))
-    .rows[0];
-  return { id, version: row.version, items };
+  const [items, versionRow] = await Promise.all([
+    cartItems(id),
+    pool.query("SELECT version FROM carts WHERE id=$1", [id]),
+  ]);
+  return { id, version: versionRow.rows[0].version, items };
 }
 export async function mutateItem(
   cartId: string,

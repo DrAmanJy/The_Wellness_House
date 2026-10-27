@@ -16,6 +16,7 @@ import {
 import { token, hash } from "./security/crypto";
 import * as customers from "./modules/customers/service";
 import * as carts from "./modules/cart/service";
+import { cartIdReadOnly } from "./modules/cart/service";
 import * as checkout from "./modules/checkout/service";
 import * as checkoutPayments from "./modules/checkout/payments";
 const uuid = z.string().uuid(),
@@ -45,18 +46,49 @@ export async function customerRoute(
   const [area, id, action] = path,
     method = req.method;
   if (area === "variants" && method === "GET") {
-    return json(await checkout.variants(z.string().max(120).parse(id)));
+    return json(
+      await checkout.variants(z.string().max(120).parse(id)),
+      200,
+      "public, s-maxage=60, stale-while-revalidate=300",
+    );
   }
   if (area === "cart") {
     await limit(req, "cart", 120, p?.userId);
     let guest = cookieValue(req, "guest") || token();
+
+    // Fast path: GET cart uses read-only lookup (no transaction/advisory lock)
+    if (method === "GET" && !id) {
+      let cartId: string | null;
+      try {
+        cartId = await cartIdReadOnly(p, guest);
+      } catch (e) {
+        if (
+          !p &&
+          e instanceof AppError &&
+          e.code === "GUEST_CART_CONSUMED"
+        ) {
+          guest = token();
+          cartId = await cartIdReadOnly(null, guest);
+        } else throw e;
+      }
+      // No cart exists yet — return empty snapshot without creating one
+      if (!cartId) {
+        const response = json({ id: "", version: 0, items: [] });
+        response.headers.append("Set-Cookie", cookie("guest", guest, 2592000));
+        return response;
+      }
+      const result = await carts.snapshot(cartId);
+      const response = json(result);
+      response.headers.append("Set-Cookie", cookie("guest", guest, 2592000));
+      return response;
+    }
+
     let cartId: string;
     try {
       cartId = await carts.cart(p, guest);
     } catch (e) {
       if (
         !p &&
-        method === "GET" &&
         e instanceof AppError &&
         e.code === "GUEST_CART_CONSUMED"
       ) {
