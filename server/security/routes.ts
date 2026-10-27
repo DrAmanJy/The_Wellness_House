@@ -12,6 +12,7 @@ export const apiRoutes: [RegExp, string][] = [
   [/^auth\/google\/callback$/, "GET"],
   [/^auth\/apple\/callback$/, "POST"],
   [/^me$/, "GET"],
+  [/^bootstrap$/, "GET"],
   [/^me\/consultations$/, "GET"],
   [/^logout$/, "POST"],
   [/^account\/unlink$/, "POST"],

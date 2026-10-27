@@ -28,6 +28,7 @@ import {
   schedule,
 } from "@/server/modules/content/editorial";
 import { media } from "@/server/modules/media/service";
+import { cartIdReadOnly, snapshot as cartSnapshot } from "@/server/modules/cart/service";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 type Context = { params: Promise<{ path: string[] }> };
@@ -115,6 +116,48 @@ async function dispatch(req: Request, { params }: Context) {
       throw new AppError(405, "METHOD", "Use POST to start sign-in");
     }
     if (method !== "GET" && method !== "HEAD") csrf(req);
+
+    // Bootstrap: single request that returns user + cart + saved rituals
+    if (area === "bootstrap" && method === "GET") {
+      const p = await session(req);
+      const guest = cookieValue(req, "guest") || "";
+      // Run all lookups in parallel
+      const [cartResult, savedResult, identitiesResult, prefsResult] = await Promise.all([
+        (async () => {
+          const id = await cartIdReadOnly(p, guest).catch(() => null);
+          if (!id) return { id: "", version: 0, items: [] };
+          return cartSnapshot(id);
+        })(),
+        p
+          ? pool.query(
+              "SELECT e.slug FROM saved_rituals s JOIN content_entities e ON e.id=s.product_id WHERE s.user_id=$1 AND e.live_revision_id IS NOT NULL AND e.lifecycle='active'",
+              [p.userId],
+            ).then(r => r.rows.map((r: any) => r.slug))
+          : Promise.resolve([]),
+        p
+          ? pool.query("SELECT provider FROM auth_identities WHERE user_id=$1", [p.userId])
+          : Promise.resolve({ rows: [] }),
+        p
+          ? pool.query("SELECT locale,reduced_motion,marketing_email,version FROM customer_preferences WHERE user_id=$1", [p.userId])
+          : Promise.resolve({ rows: [] }),
+      ]);
+      return json({
+        user: p
+          ? {
+              userId: p.userId,
+              name: p.name,
+              email: p.email,
+              roles: p.roles,
+              stepUp: p.stepUp,
+              identities: identitiesResult.rows,
+              preferences: prefsResult.rows[0] || null,
+            }
+          : null,
+        cart: cartResult,
+        savedRituals: savedResult,
+      });
+    }
+
     const p = [
       "products",
       "collections",
@@ -141,23 +184,27 @@ async function dispatch(req: Request, { params }: Context) {
           ).rows,
         );
       }
-      return json(
-        p
-          ? {
-              userId: p.userId,
-              name: p.name,
-              email: p.email,
-              roles: p.roles,
-              stepUp: p.stepUp,
-              identities: (
-                await pool.query(
-                  "SELECT provider FROM auth_identities WHERE user_id=$1",
-                  [p.userId],
-                )
-              ).rows,
-            }
-          : null,
-      );
+      if (!p) return json(null);
+      // Fetch identities and preferences in parallel to avoid waterfall
+      const [identitiesResult, prefsResult] = await Promise.all([
+        pool.query(
+          "SELECT provider FROM auth_identities WHERE user_id=$1",
+          [p.userId],
+        ),
+        pool.query(
+          "SELECT locale,reduced_motion,marketing_email,version FROM customer_preferences WHERE user_id=$1",
+          [p.userId],
+        ),
+      ]);
+      return json({
+        userId: p.userId,
+        name: p.name,
+        email: p.email,
+        roles: p.roles,
+        stepUp: p.stepUp,
+        identities: identitiesResult.rows,
+        preferences: prefsResult.rows[0] || null,
+      });
     }
     if (area === "logout" && method === "POST") {
       if (p)
@@ -671,7 +718,11 @@ async function dispatch(req: Request, { params }: Context) {
       if (id) {
         const row = await published(kind.data, id);
         if (!row) throw new AppError(404, "NOT_FOUND", "Not found");
-        return json({ ...row.content, id: row.id, slug: row.slug });
+        return json(
+          { ...row.content, id: row.id, slug: row.slug },
+          200,
+          "public, s-maxage=60, stale-while-revalidate=300",
+        );
       }
       let rows = await listPublished(
         kind.data,
@@ -689,7 +740,11 @@ async function dispatch(req: Request, { params }: Context) {
             (!r.content.campaignEndDate ||
               new Date(r.content.campaignEndDate) > new Date()),
         );
-      return json(rows.map((r) => ({ ...r.content, id: r.id, slug: r.slug })));
+      return json(
+        rows.map((r) => ({ ...r.content, id: r.id, slug: r.slug })),
+        200,
+        "public, s-maxage=60, stale-while-revalidate=300",
+      );
     }
     throw new AppError(404, "NOT_FOUND", "Endpoint not found");
   });
