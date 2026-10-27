@@ -2,7 +2,12 @@ import { pool, transaction } from "../../db";
 import { type Principal, authenticated } from "../../security/session";
 import { AppError } from "../../security/http";
 import { token, hash, encrypt } from "../../security/crypto";
-import { addressSchema, profileSchema, preferenceSchema } from "./schemas";
+import {
+  addressSchema,
+  profileSchema,
+  preferenceSchema,
+  type Address,
+} from "./schemas";
 export function recent(p: Principal | null) {
   authenticated(p);
   if (Date.now() - p.createdAt.getTime() > 5 * 60000)
@@ -145,21 +150,21 @@ export async function savePreferences(p: Principal, input: unknown) {
     return row;
   });
 }
-export async function addresses(p: Principal) {
-  return {
-    items: (
-      await pool.query(
-        "SELECT * FROM addresses WHERE user_id=$1 AND archived_at IS NULL ORDER BY created_at,id",
-        [p.userId],
-      )
-    ).rows,
-    defaults: (
-      await pool.query(
-        "SELECT shipping_address_id,billing_address_id FROM customer_defaults WHERE user_id=$1",
-        [p.userId],
-      )
-    ).rows[0] || { shipping_address_id: null, billing_address_id: null },
+export async function addresses(p: Principal): Promise<{
+  items: (Address & { id: string; version: number; user_id: string })[];
+  defaults: {
+    shipping_address_id: string | null;
+    billing_address_id: string | null;
   };
+}> {
+  return (
+    await pool.query(
+      `SELECT
+    coalesce((SELECT jsonb_agg(to_jsonb(a) ORDER BY a.created_at,a.id) FROM addresses a WHERE a.user_id=$1 AND a.archived_at IS NULL),'[]'::jsonb) AS items,
+    coalesce((SELECT jsonb_build_object('shipping_address_id',shipping_address_id,'billing_address_id',billing_address_id) FROM customer_defaults WHERE user_id=$1),jsonb_build_object('shipping_address_id',NULL,'billing_address_id',NULL)) AS defaults`,
+      [p.userId],
+    )
+  ).rows[0];
 }
 export async function saveAddress(
   p: Principal,
