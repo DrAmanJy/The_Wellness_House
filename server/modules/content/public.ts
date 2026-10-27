@@ -21,27 +21,15 @@ export async function published(
   slug: string,
 ): Promise<Published | null> {
   return requestSnapshot(`${kind}:${slug}`, async () => {
-    const rows = await db
-      .select({
-        id: entities.id,
-        kind: entities.kind,
-        slug: entities.slug,
-        revision_id: revisions.id,
-        content: revisions.content,
-        seo: revisions.seo,
-        published_at: entities.publishedAt,
-      })
-      .from(entities)
-      .innerJoin(revisions, eq(revisions.id, entities.liveRevisionId))
-      .where(
-        and(
-          eq(entities.kind, kind),
-          eq(entities.slug, slug),
-          eq(entities.lifecycle, "active"),
-        ),
-      )
-      .limit(1);
-    return (rows[0] as Published | undefined) || null;
+    const res = await pool.query(
+      `SELECT e.id, e.kind, e.slug, r.id AS revision_id, r.content, r.seo, e.published_at 
+       FROM content_entities e 
+       JOIN content_revisions r ON r.id = e.live_revision_id 
+       WHERE e.kind = $1 AND e.slug = $2 AND e.lifecycle = 'active' 
+       LIMIT 1`,
+      [kind, slug]
+    );
+    return (res.rows[0] as Published | undefined) || null;
   });
 }
 export async function listPublished(
