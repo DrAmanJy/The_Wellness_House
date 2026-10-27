@@ -7,7 +7,10 @@ import type { Principal } from "../../security/session";
  * Read-only cart ID lookup — no transaction, no advisory lock.
  * Returns the active cart ID or null if none exists.
  */
-export async function cartIdReadOnly(p: Principal | null, guest: string): Promise<string | null> {
+export async function cartIdReadOnly(
+  p: Principal | null,
+  guest: string,
+): Promise<string | null> {
   if (p) {
     const row = (
       await pool.query(
@@ -34,8 +37,12 @@ export async function cartIdReadOnly(p: Principal | null, guest: string): Promis
   return row.id as string;
 }
 
-export async function cart(p: Principal | null, guest: string) {
-  return transaction(async (c) => {
+export async function cart(
+  p: Principal | null,
+  guest: string,
+  client?: PoolClient,
+) {
+  const resolveCart = async (c: PoolClient) => {
     await c.query("SELECT pg_advisory_xact_lock(hashtextextended($1,0))", [
       p ? "cart:user:" + p.userId : "cart:guest:" + hash(guest),
     ]);
@@ -78,7 +85,8 @@ export async function cart(p: Principal | null, guest: string) {
         hash(guest),
       ])
     ).rows[0].id as string;
-  });
+  };
+  return client ? resolveCart(client) : transaction(resolveCart);
 }
 export async function assertCart(c: PoolClient, id: string) {
   const row = (
@@ -112,11 +120,101 @@ export async function cartItems(id: string) {
   }));
 }
 export async function snapshot(id: string) {
-  const [items, versionRow] = await Promise.all([
-    cartItems(id),
-    pool.query("SELECT version FROM carts WHERE id=$1", [id]),
-  ]);
-  return { id, version: versionRow.rows[0].version, items };
+  const row = (
+    await pool.query("SELECT cart_snapshot($1::uuid) AS snapshot", [id])
+  ).rows[0];
+  if (!row?.snapshot) throw new AppError(404, "CART", "Bag not found");
+  return row.snapshot;
+}
+export async function readSnapshot(p: Principal | null, guest: string) {
+  if (!p && !guest) return { id: "", version: 0, items: [] };
+  const row = (
+    await pool.query(
+      `SELECT cart_snapshot(id) AS snapshot,state,expires_at FROM carts WHERE ${p ? "user_id=$1 AND state='active'" : "guest_hash=$1"}`,
+      [p ? p.userId : hash(guest)],
+    )
+  ).rows[0];
+  if (!row) return { id: "", version: 0, items: [] };
+  if (!p && (row.state !== "active" || row.expires_at <= new Date()))
+    throw new AppError(
+      409,
+      "GUEST_CART_CONSUMED",
+      "Your bag changed after sign-in. Refresh and try again.",
+    );
+  return row.snapshot;
+}
+export async function mutateOwnedCart(
+  p: Principal | null,
+  guest: string,
+  variantId: string,
+  input: {
+    cartId: string;
+    quantity: number;
+    expectedVersion?: number;
+    operationId: string;
+    increment: boolean;
+  },
+) {
+  const fingerprint = hash(
+    JSON.stringify({
+      variantId,
+      quantity: input.quantity,
+      increment: input.increment,
+    }),
+  );
+  try {
+    return (
+      await pool.query(
+        "SELECT mutate_owned_cart($1::uuid,$2,$3::uuid,$4::uuid,$5::integer,$6::boolean,$7::integer,$8::uuid,$9) AS snapshot",
+        [
+          p?.userId || null,
+          p ? null : hash(guest),
+          input.cartId || null,
+          variantId,
+          input.quantity,
+          input.increment,
+          input.expectedVersion ?? null,
+          input.operationId,
+          fingerprint,
+        ],
+      )
+    ).rows[0].snapshot;
+  } catch (error) {
+    if (
+      error &&
+      typeof error === "object" &&
+      "code" in error &&
+      error.code === "P0001" &&
+      "message" in error
+    ) {
+      const errors: Record<string, [number, string]> = {
+        CART_OWNER_CHANGED: [
+          409,
+          "Your account changed. Refresh the bag first",
+        ],
+        CART_INACTIVE: [409, "This bag is no longer active"],
+        GUEST_CART_CONSUMED: [
+          409,
+          "Your bag changed after sign-in. Refresh and try again.",
+        ],
+        OPERATION_REUSED: [
+          409,
+          "This action was already used for different items",
+        ],
+        CART_VERSION: [
+          409,
+          "Your bag changed in another tab. Refresh and try again.",
+        ],
+        PRODUCT_UNAVAILABLE: [404, "This supply is unavailable"],
+        QUANTITY: [422, "Choose between 1 and 99 units"],
+        CART_LIMIT: [422, "A bag can contain up to 50 different supplies"],
+      };
+      const code = String(error.message),
+        match = errors[code];
+      if (match) throw new AppError(match[0], code, match[1]);
+    }
+    throw error;
+  }
 }
 export async function mutateItem(
   cartId: string,
@@ -214,6 +312,40 @@ export async function mutateItem(
       ]);
   });
   return snapshot(cartId);
+}
+export async function clearOwnedCart(
+  p: Principal | null,
+  guest: string,
+  cartId: string,
+  version: number,
+) {
+  try {
+    return (
+      await pool.query(
+        "SELECT clear_owned_cart($1::uuid,$2,$3::uuid,$4::integer) AS snapshot",
+        [p?.userId || null, p ? null : hash(guest), cartId, version],
+      )
+    ).rows[0].snapshot;
+  } catch (error) {
+    if (
+      error &&
+      typeof error === "object" &&
+      "code" in error &&
+      error.code === "P0001" &&
+      "message" in error
+    ) {
+      const code = String(error.message);
+      if (
+        ["CART_OWNER_CHANGED", "CART_INACTIVE", "CART_VERSION"].includes(code)
+      )
+        throw new AppError(
+          409,
+          code,
+          "Your bag changed. Refresh and try again.",
+        );
+    }
+    throw error;
+  }
 }
 // Compatibility for non-commerce integrations; the storefront uses variant IDs.
 export async function setItem(cartId: string, slug: string, quantity: number) {

@@ -16,9 +16,7 @@ import {
 import { token, hash } from "./security/crypto";
 import * as customers from "./modules/customers/service";
 import * as carts from "./modules/cart/service";
-import { cartIdReadOnly } from "./modules/cart/service";
 import * as checkout from "./modules/checkout/service";
-import * as checkoutPayments from "./modules/checkout/payments";
 const uuid = z.string().uuid(),
   version = z.number().int().nonnegative();
 async function paymentInput(req: Request) {
@@ -53,57 +51,27 @@ export async function customerRoute(
     );
   }
   if (area === "cart") {
-    await limit(req, "cart", 120, p?.userId);
     let guest = cookieValue(req, "guest") || token();
-
-    // Fast path: GET cart uses read-only lookup (no transaction/advisory lock)
     if (method === "GET" && !id) {
-      let cartId: string | null;
+      let result;
+      await limit(req, "cart", 120, p?.userId);
       try {
-        cartId = await cartIdReadOnly(p, guest);
-      } catch (e) {
+        result = await carts.readSnapshot(p, cookieValue(req, "guest"));
+      } catch (error) {
         if (
           !p &&
-          e instanceof AppError &&
-          e.code === "GUEST_CART_CONSUMED"
+          error instanceof AppError &&
+          error.code === "GUEST_CART_CONSUMED"
         ) {
           guest = token();
-          cartId = await cartIdReadOnly(null, guest);
-        } else throw e;
+          result = { id: "", version: 0, items: [] };
+        } else throw error;
       }
-      // No cart exists yet — return empty snapshot without creating one
-      if (!cartId) {
-        const response = json({ id: "", version: 0, items: [] });
-        response.headers.append("Set-Cookie", cookie("guest", guest, 2592000));
-        return response;
-      }
-      const result = await carts.snapshot(cartId);
       const response = json(result);
       response.headers.append("Set-Cookie", cookie("guest", guest, 2592000));
       return response;
     }
-
-    let cartId: string;
-    try {
-      cartId = await carts.cart(p, guest);
-    } catch (e) {
-      if (
-        !p &&
-        e instanceof AppError &&
-        e.code === "GUEST_CART_CONSUMED"
-      ) {
-        guest = token();
-        cartId = await carts.cart(null, guest);
-      } else throw e;
-    }
-    let result;
-    if (method === "GET" && !id) result = await carts.snapshot(cartId);
-    else if (method === "POST" && id === "merge") {
-      authenticated(p);
-      await carts.merge(p, guest);
-      result = await carts.snapshot(cartId);
-      guest = token();
-    } else if (
+    if (
       id === "items" &&
       action &&
       ["POST", "PUT", "DELETE"].includes(method)
@@ -115,44 +83,50 @@ export async function customerRoute(
           .object({
             quantity: z.number().int().min(0).max(99),
             expectedVersion: version.optional(),
-            cartId: uuid,
+            cartId: method === "POST" ? uuid.or(z.literal("")) : uuid,
             operationId: uuid,
           })
           .strict(),
       );
-      if (input.cartId !== cartId)
-        throw new AppError(
-          409,
-          "CART_OWNER_CHANGED",
-          "Your account changed. Refresh the bag first",
-        );
       if (method !== "POST" && input.expectedVersion === undefined)
         throw new AppError(
           422,
           "VERSION_REQUIRED",
           "Include the current bag version",
         );
-      result = await carts.mutateItem(cartId, action, {
+      await limit(req, "cart", 120, p?.userId);
+      const result = await carts.mutateOwnedCart(p, guest, action, {
         ...input,
         quantity: method === "DELETE" ? 0 : input.quantity,
         increment: method === "POST",
       });
-    } else if (method === "DELETE" && !id) {
+      const response = json(result);
+      response.headers.append("Set-Cookie", cookie("guest", guest, 2592000));
+      return response;
+    }
+    await limit(req, "cart", 120, p?.userId);
+    if (method === "POST" && id === "merge") {
+      authenticated(p);
+      await carts.merge(p, guest);
+      const response = json(await carts.readSnapshot(p, ""));
+      response.headers.append("Set-Cookie", cookie("guest", token(), 2592000));
+      return response;
+    }
+    if (method === "DELETE" && !id) {
       const input = await body(
         req,
         z.object({ expectedVersion: version, cartId: uuid }).strict(),
       );
-      if (input.cartId !== cartId)
-        throw new AppError(
-          409,
-          "CART_OWNER_CHANGED",
-          "Refresh the bag after changing accounts",
-        );
-      result = await carts.clear(cartId, input.expectedVersion);
-    } else throw new AppError(405, "METHOD", "Unsupported bag action");
-    const response = json(result);
-    response.headers.append("Set-Cookie", cookie("guest", guest, 2592000));
-    return response;
+      return json(
+        await carts.clearOwnedCart(
+          p,
+          guest,
+          input.cartId,
+          input.expectedVersion,
+        ),
+      );
+    }
+    throw new AppError(405, "METHOD", "Unsupported bag action");
   }
   if (area === "purchase-intents") {
     await limit(req, "purchase-intents", 30, p?.userId);
@@ -217,12 +191,14 @@ export async function customerRoute(
     if (method === "POST" && action === "quote")
       return json(await checkout.quote(p, id));
     if (["GET", "POST"].includes(method) && action === "payment-status") {
+      const checkoutPayments = await import("./modules/checkout/payments");
       await limit(req, "payment-status", 60, p.userId);
       return json(
         await checkoutPayments.paymentStatus(p, id, method === "POST"),
       );
     }
     if (method === "POST" && action === "confirm-payment") {
+      const checkoutPayments = await import("./modules/checkout/payments");
       await limit(req, "payment-confirmation", 15, p.userId);
       return json(
         await checkoutPayments.confirmCheckoutPayment(
@@ -233,6 +209,7 @@ export async function customerRoute(
       );
     }
     if (method === "POST" && action === "payment-attempts") {
+      const checkoutPayments = await import("./modules/checkout/payments");
       await limit(req, "orders", 10, p.userId);
       const input = await body(req, z.object({ version }).strict());
       return json(
