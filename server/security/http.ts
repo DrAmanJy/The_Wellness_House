@@ -2,6 +2,7 @@ import { randomUUID, timingSafeEqual } from "node:crypto";
 import { z } from "zod";
 import { pool } from "../db";
 import { hash } from "./crypto";
+import { apiMetrics } from "../performance";
 export class AppError extends Error {
   constructor(
     public status: number,
@@ -202,6 +203,14 @@ export async function limit(
     throw new AppError(429, "RATE_LIMIT", "Please try again in a minute");
 }
 export async function endpoint(fn: () => Promise<Response>) {
+  const stats={started:performance.now(),dbCalls:0,dbMs:0};
+  return apiMetrics.run(stats,async()=>{
+    const response=await runEndpoint(fn);
+    response.headers.set("Server-Timing",`app;dur=${(performance.now()-stats.started).toFixed(1)}, db;dur=${stats.dbMs.toFixed(1)}, db_calls;desc="${stats.dbCalls}"`);
+    return response;
+  });
+}
+async function runEndpoint(fn: () => Promise<Response>) {
   const requestId = randomUUID();
   try {
     const result = await fn();

@@ -15,6 +15,7 @@ import { catalog, published } from "@/server/modules/content/public";
 import { jsonLd } from "@/server/modules/content/seo";
 import { origin } from "@/server/security/http";
 export const dynamic = "force-dynamic";
+export const preferredRegion = "sin1";
 
 const sans = localFont({
   src: "../node_modules/@fontsource-variable/plus-jakarta-sans/files/plus-jakarta-sans-latin-wght-normal.woff2",
@@ -51,8 +52,11 @@ export default async function RootLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const rituals = await catalog();
-  const config = (await published("site-config", "global"))?.content;
+  const [rituals, site] = await Promise.all([
+    catalog(),
+    published("site-config", "global"),
+  ]);
+  const config = site?.content;
   return (
     <html
       lang="en"

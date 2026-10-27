@@ -1,6 +1,5 @@
 import { clearPurchaseCookies } from "@/server/modules/identity/purchase-cookies";
 import { customerRoute } from "@/server/customer-router";
-import { webhook } from "@/server/modules/commerce/service";
 import { z } from "zod";
 import { pool, transaction } from "@/server/db";
 import {
@@ -20,17 +19,16 @@ import * as content from "@/server/modules/content/service";
 import { listPublished, published } from "@/server/modules/content/public";
 import * as operations from "@/server/modules/operations/service";
 import { assertApiRoute, devAuthEnabled } from "@/server/security/routes";
-import * as oauth from "@/server/modules/identity/oauth";
-import * as mfa from "@/server/modules/identity/mfa";
 import {
   redirectSave,
   redirects,
   schedule,
 } from "@/server/modules/content/editorial";
-import { media } from "@/server/modules/media/service";
-import { cartIdReadOnly, snapshot as cartSnapshot } from "@/server/modules/cart/service";
+import { bootstrap } from "@/server/modules/customers/bootstrap";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
+// Keep database-backed functions beside the Neon ap-southeast-1 database.
+export const preferredRegion = "sin1";
 type Context = { params: Promise<{ path: string[] }> };
 const uuid = z.string().uuid();
 const version = z.number().int().min(0);
@@ -41,12 +39,14 @@ async function dispatch(req: Request, { params }: Context) {
       url = new URL(req.url),
       method = req.method;
     assertApiRoute(path, method);
-    if (area === "webhooks" && id === "razorpay" && method === "POST")
+    if (area === "webhooks" && id === "razorpay" && method === "POST") {
+      const { webhook } = await import("@/server/modules/commerce/service");
       return json(await webhook(req));
+    }
     if (area === "health") {
       if (id === "ready") {
         const ready = await pool.query(
-          "SELECT 1 FROM schema_migrations WHERE name='009_transient_cleanup.sql'",
+          "SELECT 1 FROM schema_migrations WHERE name='010_cart_round_trips.sql'",
         );
         if (!ready.rowCount)
           throw new AppError(503, "NOT_READY", "Service is not ready");
@@ -107,6 +107,7 @@ async function dispatch(req: Request, { params }: Context) {
       return json({ ok: true });
     }
     if (area === "auth" && ["google", "apple"].includes(id)) {
+      const oauth = await import("@/server/modules/identity/oauth");
       const provider = id as "google" | "apple";
       if (action === "callback") return oauth.callback(req, provider);
       if (method === "POST") {
@@ -117,45 +118,25 @@ async function dispatch(req: Request, { params }: Context) {
     }
     if (method !== "GET" && method !== "HEAD") csrf(req);
 
-    // Bootstrap: single request that returns user + cart + saved rituals
     if (area === "bootstrap" && method === "GET") {
       const p = await session(req);
-      const guest = cookieValue(req, "guest") || "";
-      // Run all lookups in parallel
-      const [cartResult, savedResult, identitiesResult, prefsResult] = await Promise.all([
-        (async () => {
-          const id = await cartIdReadOnly(p, guest).catch(() => null);
-          if (!id) return { id: "", version: 0, items: [] };
-          return cartSnapshot(id);
-        })(),
-        p
-          ? pool.query(
-              "SELECT e.slug FROM saved_rituals s JOIN content_entities e ON e.id=s.product_id WHERE s.user_id=$1 AND e.live_revision_id IS NOT NULL AND e.lifecycle='active'",
-              [p.userId],
-            ).then(r => r.rows.map((r: any) => r.slug))
-          : Promise.resolve([]),
-        p
-          ? pool.query("SELECT provider FROM auth_identities WHERE user_id=$1", [p.userId])
-          : Promise.resolve({ rows: [] }),
-        p
-          ? pool.query("SELECT locale,reduced_motion,marketing_email,version FROM customer_preferences WHERE user_id=$1", [p.userId])
-          : Promise.resolve({ rows: [] }),
-      ]);
-      return json({
-        user: p
-          ? {
-              userId: p.userId,
-              name: p.name,
-              email: p.email,
-              roles: p.roles,
-              stepUp: p.stepUp,
-              identities: identitiesResult.rows,
-              preferences: prefsResult.rows[0] || null,
-            }
-          : null,
-        cart: cartResult,
-        savedRituals: savedResult,
-      });
+      let guest = cookieValue(req, "guest") || token();
+      let result;
+      try {
+        result = await bootstrap(p, cookieValue(req, "guest"));
+      } catch (error) {
+        if (
+          !p &&
+          error instanceof AppError &&
+          error.code === "GUEST_CART_CONSUMED"
+        ) {
+          guest = token();
+          result = await bootstrap(null, "");
+        } else throw error;
+      }
+      const response = json(result);
+      response.headers.append("Set-Cookie", cookie("guest", guest, 2592000));
+      return response;
     }
 
     const p = [
@@ -187,10 +168,9 @@ async function dispatch(req: Request, { params }: Context) {
       if (!p) return json(null);
       // Fetch identities and preferences in parallel to avoid waterfall
       const [identitiesResult, prefsResult] = await Promise.all([
-        pool.query(
-          "SELECT provider FROM auth_identities WHERE user_id=$1",
-          [p.userId],
-        ),
+        pool.query("SELECT provider FROM auth_identities WHERE user_id=$1", [
+          p.userId,
+        ]),
         pool.query(
           "SELECT locale,reduced_motion,marketing_email,version FROM customer_preferences WHERE user_id=$1",
           [p.userId],
@@ -254,6 +234,7 @@ async function dispatch(req: Request, { params }: Context) {
       return json({ ok: true });
     }
     if (area === "mfa" && method === "POST") {
+      const mfa = await import("@/server/modules/identity/mfa");
       await limit(req, "mfa", 15, p?.userId);
       const register = id === "register";
       if (action === "options") return json(await mfa.options(p, register));
@@ -275,6 +256,7 @@ async function dispatch(req: Request, { params }: Context) {
       }
     }
     if (area === "media") {
+      const { media } = await import("@/server/modules/media/service");
       await limit(req, "media", 100, p?.userId);
       return media(req, id, p);
     }

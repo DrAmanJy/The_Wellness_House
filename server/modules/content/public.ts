@@ -1,10 +1,6 @@
-import { pool, db } from "../../db";
-import { and, eq } from "drizzle-orm";
-import {
-  contentEntities as entities,
-  contentRevisions as revisions,
-} from "../../db/schema";
+import { pool } from "../../db";
 import { requestSnapshot } from "../../request-context";
+import { cache } from "react";
 import type { Kind } from "./schemas";
 import type { RitualFormulation, BlogPost } from "../../../lib/types";
 export interface Published {
@@ -20,18 +16,22 @@ export async function published(
   kind: Kind,
   slug: string,
 ): Promise<Published | null> {
-  return requestSnapshot(`${kind}:${slug}`, async () => {
+  return requestSnapshot(`${kind}:${slug}`, () => readPublished(kind, slug));
+}
+// React cache deduplicates only within a server render; no persistent/user cache.
+const readPublished = cache(
+  async (kind: Kind, slug: string): Promise<Published | null> => {
     const res = await pool.query(
       `SELECT e.id, e.kind, e.slug, r.id AS revision_id, r.content, r.seo, e.published_at 
        FROM content_entities e 
        JOIN content_revisions r ON r.id = e.live_revision_id 
        WHERE e.kind = $1 AND e.slug = $2 AND e.lifecycle = 'active' 
        LIMIT 1`,
-      [kind, slug]
+      [kind, slug],
     );
     return (res.rows[0] as Published | undefined) || null;
-  });
-}
+  },
+);
 export async function listPublished(
   kind: Kind,
   limit = 50,
