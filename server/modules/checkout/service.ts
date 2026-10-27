@@ -134,7 +134,7 @@ export async function resume(
     let items: unknown[],
       cartId = null;
     if (intent.mode === "cart") {
-      cartId = await cart(p, "");
+      cartId = await cart(p, "", c);
       await assertCart(c, cartId);
       items = (
         await c.query(
@@ -159,39 +159,34 @@ export async function resume(
   });
 }
 export async function getCheckout(p: Principal, id: string) {
-  const row = (
+  const result = (
     await pool.query(
-      "SELECT * FROM checkout_sessions WHERE id=$1 AND user_id=$2",
+      `SELECT c.*,
+    coalesce((SELECT jsonb_agg(line.value || jsonb_build_object(
+      'id',v.id,'title',v.title,'supply_code',v.supply_code,'price_minor',v.price_minor::text,'currency',v.currency,
+      'slug',e.slug,'image_url',r.content->>'imageUrl','product_title',coalesce(r.content->>'title',v.title),
+      'available',(v.active AND e.live_revision_id IS NOT NULL AND e.lifecycle='active')
+    ) ORDER BY line.position) FROM jsonb_array_elements(c.items) WITH ORDINALITY AS line(value,position)
+    LEFT JOIN product_variants v ON v.id=(line.value->>'variantId')::uuid
+    LEFT JOIN content_entities e ON e.id=v.product_id LEFT JOIN content_revisions r ON r.id=e.live_revision_id),'[]'::jsonb) AS resolved_items,
+    (SELECT enabled FROM commerce_settings WHERE singleton) AS commerce_enabled,
+    (SELECT jsonb_build_object('id',id) FROM orders WHERE checkout_id=c.id AND confirmed_at IS NOT NULL) AS confirmed_order
+    FROM checkout_sessions c WHERE c.id=$1 AND c.user_id=$2`,
       [id, p.userId],
     )
   ).rows[0];
-  if (!row) throw new AppError(404, "CHECKOUT", "Checkout not found");
-  const lines = await pool.query(
-    "SELECT v.id,v.title,v.supply_code,v.price_minor,v.currency,e.slug,r.content->>'imageUrl' AS image_url,coalesce(r.content->>'title',v.title) AS product_title,(v.active AND e.live_revision_id IS NOT NULL AND e.lifecycle='active') AS available FROM product_variants v JOIN content_entities e ON e.id=v.product_id LEFT JOIN content_revisions r ON r.id=e.live_revision_id WHERE v.id=ANY($1::uuid[])",
-    [row.items.map((i: any) => i.variantId)],
-  );
-  const settings = (
-    await pool.query("SELECT enabled FROM commerce_settings WHERE singleton")
-  ).rows[0];
+  if (!result) throw new AppError(404, "CHECKOUT", "Checkout not found");
+  const { resolved_items, commerce_enabled, confirmed_order, ...row } = result;
   return {
     ...row,
-    items: row.items.map((i: any) => ({
-      ...i,
-      ...lines.rows.find((v) => v.id === i.variantId),
-    })),
+    items: resolved_items,
     paymentConfigured: !!(
-      settings.enabled &&
+      commerce_enabled &&
       process.env.RAZORPAY_KEY_ID &&
       process.env.RAZORPAY_KEY_SECRET &&
       process.env.RAZORPAY_WEBHOOK_SECRET
     ),
-    order:
-      (
-        await pool.query(
-          "SELECT id FROM orders WHERE checkout_id=$1 AND confirmed_at IS NOT NULL",
-          [id],
-        )
-      ).rows[0] || null,
+    order: confirmed_order,
     paymentAttempt: row.state === "ordered",
   };
 }
@@ -510,40 +505,16 @@ function canonical(value: any): string {
   );
 }
 export async function getOrder(p: Principal, id: string) {
-  const o = (
+  const order = (
     await pool.query(
-      "SELECT * FROM orders WHERE id=$1 AND user_id=$2 AND confirmed_at IS NOT NULL",
+      `SELECT o.*,p.state AS "paymentState",
+    coalesce((SELECT jsonb_agg(jsonb_build_object('title_snapshot',i.title_snapshot,'quantity',i.quantity,'unit_price_minor',i.unit_price_minor::text) ORDER BY i.id) FROM order_items i WHERE i.order_id=o.id),'[]'::jsonb) AS items
+    FROM orders o LEFT JOIN payments p ON p.order_id=o.id WHERE o.id=$1 AND o.user_id=$2 AND o.confirmed_at IS NOT NULL`,
       [id, p.userId],
     )
   ).rows[0];
-  if (!o) throw new AppError(404, "ORDER", "Order not found");
-  const payment = (
-    await pool.query(
-      "SELECT state,provider_order_id FROM payments WHERE order_id=$1",
-      [id],
-    )
-  ).rows[0];
-  return {
-    ...o,
-    paymentState: payment?.state || null,
-    items: (
-      await pool.query(
-        "SELECT title_snapshot,quantity,unit_price_minor FROM order_items WHERE order_id=$1 ORDER BY id",
-        [id],
-      )
-    ).rows,
-    payment:
-      payment?.state === "ready" &&
-      o.payment_status === "pending" &&
-      o.expires_at > new Date()
-        ? {
-            keyId: process.env.RAZORPAY_KEY_ID,
-            orderId: payment.provider_order_id,
-            amount: o.total_minor,
-            currency: o.currency,
-          }
-        : null,
-  };
+  if (!order) throw new AppError(404, "ORDER", "Order not found");
+  return { ...order, payment: null };
 }
 export async function listOrders(p: Principal, after = "") {
   return (
