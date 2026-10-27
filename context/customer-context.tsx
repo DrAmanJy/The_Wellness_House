@@ -16,6 +16,19 @@ export interface Customer {
   roles: string[];
   identities: { provider: string }[];
 }
+interface BootstrapData {
+  user: (Customer & { preferences?: any; stepUp?: any }) | null;
+  cart: { id: string; version: number; items: any[] };
+  savedRituals: string[];
+}
+// Shared bootstrap promise so StoreProvider can read it too
+let _bootstrapPromise: Promise<BootstrapData> | null = null;
+export function getBootstrapPromise(): Promise<BootstrapData> | null {
+  return _bootstrapPromise;
+}
+export function clearBootstrapPromise() {
+  _bootstrapPromise = null;
+}
 interface State {
   customer: Customer | null;
   status: "loading" | "authenticated" | "anonymous";
@@ -42,25 +55,27 @@ export function CustomerProvider({ children }: { children: React.ReactNode }) {
     const run = ++epoch.current;
     if (!resolved.current) setStatus("loading");
     try {
-      const user = await api<Customer | null>("me");
+      // Single request fetches user + cart + saved rituals
+      const bootstrapReq = api<BootstrapData>("bootstrap");
+      _bootstrapPromise = bootstrapReq;
+      const data = await bootstrapReq;
       if (epoch.current !== run) return;
       resolved.current = true;
+      const user = data.user;
       if (identity.current !== (user?.userId || null)) {
         identity.current = user?.userId || null;
         channel.current?.postMessage("changed");
       }
       setCustomer(user);
       setStatus(user ? "authenticated" : "anonymous");
-      if (user) {
-        const prefs = await api("me/preferences").catch(() => null);
-        if (epoch.current === run) setPreferences(prefs);
-      } else setPreferences(null);
+      setPreferences(user?.preferences ?? null);
     } catch {
       if (epoch.current === run) {
         resolved.current = true;
         setCustomer(null);
         setPreferences(null);
         setStatus("anonymous");
+        _bootstrapPromise = null;
       }
     }
   }

@@ -10,6 +10,7 @@ import React, {
 import type { RitualFormulation, ConsultationBooking } from "@/lib/types";
 import { api } from "@/lib/api-client";
 import { useCustomer } from "./customer-context";
+import { getBootstrapPromise } from "./customer-context";
 import type { SupplyVariant } from "@/lib/commerce";
 interface ToastMessage {
   id: string;
@@ -118,15 +119,37 @@ export function StoreProvider({
     setIsCartOpen(false);
     setHydrated(false);
     if (status === "loading") return;
-    Promise.all([
-      api<CartSnapshot>("cart").then((v) => {
-        if (epoch.current === generation) accept(v);
-      }),
-      api<string[]>("saved-rituals").then((v) => {
-        if (epoch.current === generation) setSaved(v);
-      }),
-    ])
-      .catch(report)
+
+    // Try to use the bootstrap data that CustomerProvider already fetched
+    const bootstrapPromise = getBootstrapPromise();
+    if (bootstrapPromise) {
+      // Reuse the same request — no extra network calls
+      bootstrapPromise
+        .then((data) => {
+          if (epoch.current !== generation) return;
+          accept(data.cart);
+          setSaved(data.savedRituals || []);
+        })
+        .catch(report)
+        .finally(() => {
+          if (epoch.current === generation) setHydrated(true);
+        });
+      return;
+    }
+
+    // Fallback: fetch cart and saved-rituals separately
+    const cartPromise = api<CartSnapshot>("cart").then((v) => {
+      if (epoch.current === generation) accept(v);
+    });
+    const savedPromise = api<string[]>("saved-rituals").then((v) => {
+      if (epoch.current === generation) setSaved(v);
+    });
+    Promise.allSettled([cartPromise, savedPromise])
+      .then((results) => {
+        for (const r of results) {
+          if (r.status === "rejected") report(r.reason);
+        }
+      })
       .finally(() => {
         if (epoch.current === generation) setHydrated(true);
       });
