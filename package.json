@@ -21,7 +21,9 @@
     "test:http:boundaries": "tsx --env-file-if-exists=.env.local scripts/http-boundaries.ts",
     "test:http:customer": "tsx --env-file-if-exists=.env.local scripts/http-customer.ts",
     "test:http:razorpay": "tsx --env-file-if-exists=.env.local scripts/http-razorpay.ts",
-    "test:http:security": "tsx scripts/http-security.ts"
+    "test:http:security": "tsx scripts/http-security.ts",
+    "bench:cart": "tsx --env-file-if-exists=.env.local scripts/benchmark-cart.ts",
+    "bench:http": "tsx scripts/benchmark-http.ts"
   },
   "dependencies": {
     "@fontsource-variable/cormorant-garamond": "^5.3.0",

@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
 import { pool } from "../server/db";
 import { token, hash } from "../server/security/crypto";
+const cartWriteMeasurements: { ms: number; dbCalls: number }[] = [];
 const base = process.env.SMOKE_ORIGIN || "http://localhost:3100";
 if (
   !["127.0.0.1", "localhost"].includes(
@@ -22,6 +23,7 @@ class Browser {
       const csrf = await this.request("csrf");
       this.cookies.set("_csrf-token", csrf.token);
     }
+    const started = performance.now();
     const r = await fetch(base + "/api/v1/" + path, {
       method,
       redirect: "manual",
@@ -45,6 +47,23 @@ class Browser {
       this.cookies.set(pair.slice(0, i), pair.slice(i + 1));
     }
     const result = await r.json();
+    if (
+      path.startsWith("cart/items/") &&
+      status === 200 &&
+      ["POST", "PUT", "DELETE"].includes(method)
+    ) {
+      const calls = Number(
+        /db_calls;desc="(\d+)"/.exec(r.headers.get("server-timing") || "")?.[1],
+      );
+      assert(
+        Number.isFinite(calls) && calls <= 3,
+        "Cart writes must stay within 3 database calls including authentication and rate limiting",
+      );
+      cartWriteMeasurements.push({
+        ms: Number((performance.now() - started).toFixed(2)),
+        dbCalls: calls,
+      });
+    }
     assert.equal(
       r.status,
       status,
@@ -110,6 +129,8 @@ try {
     operationId: op,
     cartId: source.id,
   });
+  // Empty visitors receive a cart ID only after their first successful write.
+  source.id = added.id;
   const repeated = await guest.request("cart/items/" + variant.id, "POST", {
     quantity: 1,
     operationId: op,
@@ -273,6 +294,7 @@ try {
   console.log(
     "Customer HTTP checks passed: login gate, exact-once merge, stale-cart isolation, owned checkout/addresses, Buy Now preservation, logout and production bypass rejection.",
   );
+  console.log(JSON.stringify({ cartWriteMeasurements }));
 } finally {
   await pool.query(
     "UPDATE sessions SET revoked_at=now() WHERE user_id=ANY($1::uuid[])",

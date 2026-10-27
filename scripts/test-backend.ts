@@ -29,6 +29,7 @@ for (const args of [
     "tests/customer-checkout.test.ts",
     "tests/payment-modal.test.ts",
     "tests/security-audit.test.ts",
+    "tests/cart-performance.test.ts",
   ],
 ]) {
   if (args.includes("--test")) {
